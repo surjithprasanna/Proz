@@ -1,8 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react"
 import {
     Table,
     TableBody,
@@ -11,114 +9,149 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { MoreHorizontal, Check, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-
-// Mock Data
-const requests = [
-    {
-        id: "REQ-001",
-        client: "Alice Johnson",
-        project: "E-Commerce Platform",
-        status: "Pending",
-        date: "2023-10-25",
-        budget: "$5k - $10k",
-    },
-    {
-        id: "REQ-002",
-        client: "TechStart Inc.",
-        project: "SaaS MVP",
-        status: "Approved",
-        date: "2023-10-24",
-        budget: "$10k+",
-    },
-    {
-        id: "REQ-003",
-        client: "Bob Smith",
-        project: "Portfolio Site",
-        status: "Rejected",
-        date: "2023-10-23",
-        budget: "< $1k",
-    },
-]
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Loader2 } from "lucide-react"
 
 export default function AdminRequestsPage() {
-    const [data, setData] = useState(requests)
+    const [requests, setRequests] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [selectedRequest, setSelectedRequest] = useState<any>(null)
+    const [password, setPassword] = useState("")
+    const [converting, setConverting] = useState(false)
+    const [dialogOpen, setDialogOpen] = useState(false)
 
-    const handleStatusChange = (id: string, newStatus: string) => {
-        setData(data.map(req => req.id === id ? { ...req, status: newStatus } : req))
+    useEffect(() => {
+        fetchRequests()
+    }, [])
+
+    const fetchRequests = async () => {
+        try {
+            const res = await fetch('/api/admin/get-requests')
+            const data = await res.json()
+            if (Array.isArray(data)) setRequests(data)
+        } catch (error) {
+            console.error("Failed to fetch requests", error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleConvert = async () => {
+        if (!selectedRequest || !password) return
+        setConverting(true)
+
+        try {
+            const res = await fetch('/api/admin/convert-request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    requestId: selectedRequest.id,
+                    email: selectedRequest.email,
+                    password: password,
+                    projectName: `${selectedRequest.project_field} Project`, // Default name
+                    budget: selectedRequest.budget_range,
+                    deadline: selectedRequest.deadline
+                })
+            })
+
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error)
+
+            // Success
+            setDialogOpen(false)
+            fetchRequests() // Refresh list
+            alert(`User created! Credentials:\nEmail: ${selectedRequest.email}\nPassword: ${password}`)
+        } catch (error: any) {
+            alert(error.message)
+        } finally {
+            setConverting(false)
+        }
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Project Requests</h1>
-                    <p className="text-muted-foreground">Manage incoming project proposals.</p>
-                </div>
-            </div>
+        <div className="p-8 space-y-8">
+            <h1 className="text-3xl font-bold">Project Requests</h1>
 
-            <div className="border rounded-md">
+            <div className="rounded-md border">
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>ID</TableHead>
-                            <TableHead>Client</TableHead>
-                            <TableHead>Project</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Type</TableHead>
                             <TableHead>Budget</TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+                            <TableHead>Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {data.map((request) => (
-                            <TableRow key={request.id}>
-                                <TableCell className="font-medium">{request.id}</TableCell>
-                                <TableCell>{request.client}</TableCell>
-                                <TableCell>{request.project}</TableCell>
-                                <TableCell>{request.budget}</TableCell>
+                        {requests.map((req) => (
+                            <TableRow key={req.id}>
+                                <TableCell>{new Date(req.created_at).toLocaleDateString()}</TableCell>
+                                <TableCell>{req.full_name}</TableCell>
+                                <TableCell>{req.email}</TableCell>
+                                <TableCell className="capitalize">{req.project_field}</TableCell>
+                                <TableCell>{req.budget_range}</TableCell>
                                 <TableCell>
-                                    <Badge
-                                        variant={
-                                            request.status === "Approved"
-                                                ? "default"
-                                                : request.status === "Rejected"
-                                                    ? "destructive"
-                                                    : "secondary"
-                                        }
-                                    >
-                                        {request.status}
+                                    <Badge variant={req.status === 'pending' ? 'secondary' : 'default'}>
+                                        {req.status}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className="text-right">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                                <span className="sr-only">Open menu</span>
-                                                <MoreHorizontal className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                            <DropdownMenuItem onClick={() => navigator.clipboard.writeText(request.id)}>
-                                                Copy ID
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem onClick={() => handleStatusChange(request.id, "Approved")}>
-                                                <Check className="mr-2 h-4 w-4" /> Approve
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleStatusChange(request.id, "Rejected")}>
-                                                <X className="mr-2 h-4 w-4" /> Reject
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                <TableCell>
+                                    {req.status === 'pending' && (
+                                        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setSelectedRequest(req)
+                                                        setPassword(Math.random().toString(36).slice(-8)) // Auto-gen password
+                                                    }}
+                                                >
+                                                    Convert
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogHeader>
+                                                    <DialogTitle>Convert to Project</DialogTitle>
+                                                </DialogHeader>
+                                                <div className="space-y-4 py-4">
+                                                    <div className="space-y-2">
+                                                        <Label>User Email</Label>
+                                                        <Input value={selectedRequest?.email} disabled />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Temporary Password</Label>
+                                                        <Input
+                                                            value={password}
+                                                            onChange={(e) => setPassword(e.target.value)}
+                                                        />
+                                                        <p className="text-xs text-muted-foreground">
+                                                            Copy this password to send to the client.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <DialogFooter>
+                                                    <Button onClick={handleConvert} disabled={converting}>
+                                                        {converting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                        Create User & Project
+                                                    </Button>
+                                                </DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
+                                    )}
                                 </TableCell>
                             </TableRow>
                         ))}

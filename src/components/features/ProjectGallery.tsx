@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ProjectCard } from "./ProjectCard"
 
 // Mock Data (Replace with Sanity fetch later)
@@ -37,7 +37,7 @@ const projects = [
         description: "Minimalist portfolio site for a photographer with gallery and contact form.",
         image: "https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&q=80&w=800",
         field: "Web Dev",
-        audience: "Student",
+        audience: "Academic",
         priceRange: "< $1k",
         timeline: "2 weeks",
         techStack: ["Next.js", "Framer Motion"],

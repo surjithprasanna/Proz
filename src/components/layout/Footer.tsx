@@ -8,7 +8,7 @@ export function Footer() {
                     <div className="space-y-4">
                         <h3 className="text-xl font-bold">ProZ</h3>
                         <p className="text-muted-foreground text-sm">
-                            Building the future of software for students, startups, and enterprises.
+                            Building the future of software for innovators, startups, and enterprises.
                         </p>
                     </div>
                     <div>

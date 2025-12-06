@@ -10,7 +10,7 @@ export default function RequestPage() {
                 <div className="text-center mb-12">
                     <h1 className="text-3xl md:text-5xl font-bold mb-4">Start Your Project</h1>
                     <p className="text-muted-foreground max-w-2xl mx-auto">
-                        Tell us about your vision. We'll help you build it.
+                        Tell us about your vision. We&apos;ll help you build it.
                         Fill out the form below to get a custom quote and timeline.
                     </p>
                 </div>

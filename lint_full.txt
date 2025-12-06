@@ -1,0 +1,30 @@
+﻿
+> temp_proz@0.1.0 lint
+> eslint
+
+
+D:\New folder\ProZ\src\app\login\page.tsx
+  37:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\New folder\ProZ\src\app\request\page.tsx
+  13:54  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+D:\New folder\ProZ\src\app\signup\page.tsx
+  59:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+D:\New folder\ProZ\src\components\features\ProjectGallery.tsx
+  5:16  warning  'TabsContent' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\New folder\ProZ\src\components\features\ProjectRequestForm.tsx
+    8:10   warning  'z' is defined but never used                    @typescript-eslint/no-unused-vars
+   58:30   warning  'isValid' is assigned a value but never used     @typescript-eslint/no-unused-vars
+   79:31   warning  'uploadData' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  208:105  error    Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+  283:97   error    Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+
+D:\New folder\ProZ\src\components\layout\Navbar.tsx
+  6:10  warning  'motion' is defined but never used  @typescript-eslint/no-unused-vars
+  7:16  warning  'X' is defined but never used       @typescript-eslint/no-unused-vars
+
+Γ£û 11 problems (5 errors, 6 warnings)
+

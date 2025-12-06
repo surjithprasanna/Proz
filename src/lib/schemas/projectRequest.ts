@@ -5,17 +5,13 @@ export const projectRequestSchema = z.object({
     fullName: z.string().min(2, "Name must be at least 2 characters"),
     email: z.string().email("Invalid email address"),
     phone: z.string().optional(),
-    organizationType: z.enum(["student", "startup", "business", "enterprise"], {
-        required_error: "Please select an organization type",
-    }),
+    organizationType: z.enum(["student", "startup", "business", "enterprise"]),
 
     // Step 2: Project Details
     projectField: z.string().min(1, "Please select a field"),
     features: z.array(z.string()).min(1, "Select at least one feature"),
     description: z.string().min(10, "Description must be at least 10 characters"),
-    platform: z.enum(["web", "mobile", "both"], {
-        required_error: "Please select a platform",
-    }),
+    platform: z.enum(["web", "mobile", "both"]),
 
     // Step 3: Logistics
     budgetRange: z.string().min(1, "Please select a budget range"),

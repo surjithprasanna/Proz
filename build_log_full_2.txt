@@ -1,0 +1,85 @@
+﻿
+> temp_proz@0.1.0 build
+> next build
+
+   Γû▓ Next.js 16.0.7 (Turbopack)
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 4.0s
+   Running TypeScript ...
+node.exe : Failed to compile.
+At C:\Program 
+Files\nodejs\npm.ps1:29 char:3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotS 
+   pecified: (Failed to compile.:  
+  String) [], RemoteException
+    + FullyQualifiedErrorId : Nati 
+   veCommandError
+ 
+
+./src/lib/schemas/projectRequest.ts
+:8:25
+Type error: No overload matches 
+this call.
+  Overload 1 of 2, '(values: 
+readonly ["student", "startup", 
+"business", "enterprise"], 
+params?: string | { error?: string 
+| $ZodErrorMap<$ZodIssueInvalidValu
+e<unknown>> | undefined; message?: 
+string | undefined; } | 
+undefined): ZodEnum<...>', gave 
+the following error.
+    Object literal may only 
+specify known properties, and 
+'required_error' does not exist in 
+type '{ error?: string | $ZodErrorM
+ap<$ZodIssueInvalidValue<unknown>> 
+| undefined; message?: string | 
+undefined; }'.
+  Overload 2 of 2, '(entries: 
+Readonly<Record<string, 
+EnumValue>>, params?: string | { 
+error?: string | $ZodErrorMap<$ZodI
+ssueInvalidValue<unknown>> | 
+undefined; message?: string | 
+undefined; } | undefined): 
+ZodEnum<...>', gave the following 
+error.
+    Argument of type 'string[]' is 
+not assignable to parameter of 
+type 'Readonly<Record<string, 
+EnumValue>>'.
+      Index signature for type 
+'string' is missing in type 
+'string[]'.
+
+[0m [90m  6 |[39m     
+email[33m:[39m z[33m.[39mstring
+()[33m.[39memail([32m"Invalid 
+email address"[39m)[33m,[39m
+ [90m  7 |[39m     
+phone[33m:[39m z[33m.[39mstring
+()[33m.[39moptional()[33m,[39m
+[31m[1m>[22m[39m[90m  8 
+|[39m     
+organizationType[33m:[39m z[33m.
+[39m[36menum[39m([[32m"student"
+[39m[33m,[39m 
+[32m"startup"[39m[33m,[39m 
+[32m"business"[39m[33m,[39m 
+[32m"enterprise"[39m][33m,[39m 
+{
+ [90m    |[39m                   
+      [31m[1m^[22m[39m
+ [90m  9 |[39m         
+required_error[33m:[39m 
+[32m"Please select an 
+organization type"[39m[33m,[39m
+ [90m 10 |[39m     })[33m,[39m
+ [90m 11 |[39m[0m
+Next.js build worker exited with 
+code: 1 and signal: null

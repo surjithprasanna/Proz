@@ -1,0 +1,101 @@
+﻿
+> temp_proz@0.1.0 build
+> next build
+
+   Γû▓ Next.js 16.0.7 (Turbopack)
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 3.6s
+   Running TypeScript ...
+node.exe : Failed to compile.
+At C:\Program 
+Files\nodejs\npm.ps1:29 char:3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotS 
+   pecified: (Failed to compile.:  
+  String) [], RemoteException
+    + FullyQualifiedErrorId : Nati 
+   veCommandError
+ 
+
+./src/components/features/ProjectRe
+questForm.tsx:41:9
+Type error: Type 'import("D:/New fo
+lder/ProZ/node_modules/react-hook-f
+orm/dist/types/resolvers").Resolver
+<{ fullName: string; email: 
+string; organizationType: 
+"student" | "startup" | "business" 
+| "enterprise"; projectField: 
+string; features: string[]; 
+description: string; platform: 
+"web" | "mobile" | "both"; ... 4 
+more ...; fileUrl?:...' is not 
+assignable to type 'import("D:/New 
+folder/ProZ/node_modules/react-hook
+-form/dist/types/resolvers").Resolv
+er<{ fullName: string; email: 
+string; organizationType: 
+"student" | "startup" | "business" 
+| "enterprise"; projectField: 
+string; features: string[]; 
+description: string; platform: 
+"web" | "mobile" | "both"; ... 4 
+more ...; fileUrl?:...'. Two 
+different types with this name 
+exist, but they are unrelated.
+  Types of parameters 'options' 
+and 'options' are incompatible.
+    Type 'import("D:/New folder/Pro
+Z/node_modules/react-hook-form/dist
+/types/resolvers").ResolverOptions<
+{ fullName: string; email: string; 
+organizationType: "student" | 
+"startup" | "business" | 
+"enterprise"; projectField: 
+string; features: string[]; 
+description: string; platform: 
+"web" | "mobile" | "both"; ... 4 
+more ...; fi...' is not assignable 
+to type 'import("D:/New folder/ProZ
+/node_modules/react-hook-form/dist/
+types/resolvers").ResolverOptions<{
+ fullName: string; email: string; 
+organizationType: "student" | 
+"startup" | "business" | 
+"enterprise"; projectField: 
+string; features: string[]; 
+description: string; platform: 
+"web" | "mobile" | "both"; ... 4 
+more ...; fi...'. Two different 
+types with this name exist, but 
+they are unrelated.
+      Type 'boolean | undefined' 
+is not assignable to type 
+'boolean'.
+        Type 'undefined' is not 
+assignable to type 'boolean'.
+
+[0m [90m 39 |[39m
+ [90m 40 |[39m     
+[36mconst[39m form [33m=[39m us
+eForm[33m<[39m[33mProjectRequest
+Values[39m[33m>[39m({
+[31m[1m>[22m[39m[90m 41 
+|[39m         resolver[33m:[39m 
+zodResolver(projectRequestSchema)[
+33m,[39m
+ [90m    |[39m         
+[31m[1m^[22m[39m
+ [90m 42 |[39m         
+defaultValues[33m:[39m {
+ [90m 43 |[39m             
+organizationType[33m:[39m 
+[32m"startup"[39m[33m,[39m
+ [90m 44 |[39m             
+features[33m:[39m 
+[][33m,[39m[0m
+Next.js build worker exited with 
+code: 1 and signal: null

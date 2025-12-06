@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { motion, AnimatePresence } from "framer-motion"
 import { Loader2, Upload, CheckCircle2 } from "lucide-react"
-import { z } from "zod"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,10 +33,12 @@ export function ProjectRequestForm() {
     const [step, setStep] = React.useState(1)
     const [isSubmitting, setIsSubmitting] = React.useState(false)
     const [isSuccess, setIsSuccess] = React.useState(false)
+    const [selectedFile, setSelectedFile] = React.useState<File | null>(null)
+    const fileInputRef = React.useRef<HTMLInputElement>(null)
     const supabase = createClient()
 
     const form = useForm<ProjectRequestValues>({
-        resolver: zodResolver(projectRequestSchema),
+        resolver: zodResolver(projectRequestSchema) as any,
         defaultValues: {
             organizationType: "startup",
             features: [],
@@ -53,13 +54,13 @@ export function ProjectRequestForm() {
         trigger,
         setValue,
         watch,
-        formState: { errors, isValid },
+        formState: { errors },
     } = form
 
     const nextStep = async () => {
         let fieldsToValidate: (keyof ProjectRequestValues)[] = []
         if (step === 1) fieldsToValidate = ["fullName", "email", "organizationType"]
-        if (step === 2) fieldsToValidate = ["projectField", "description", "platform"]
+        if (step === 2) fieldsToValidate = ["projectField", "description", "platform", "features"]
 
         const isStepValid = await trigger(fieldsToValidate)
         if (isStepValid) setStep((s) => s + 1)
@@ -70,18 +71,56 @@ export function ProjectRequestForm() {
     const onSubmit = async (data: ProjectRequestValues) => {
         setIsSubmitting(true)
         try {
-            // TODO: Upload file if present
-            // TODO: Insert into Supabase
-            console.log("Form Data:", data)
+            let fileUrl = undefined
 
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 2000))
+            if (selectedFile) {
+                const fileName = `${Date.now()}-${selectedFile.name}`
+                const { error: uploadError } = await supabase.storage
+                    .from('project-files')
+                    .upload(fileName, selectedFile)
+
+                if (uploadError) throw uploadError
+
+                // Get public URL
+                const { data: { publicUrl } } = supabase.storage
+                    .from('project-files')
+                    .getPublicUrl(fileName)
+
+                fileUrl = publicUrl
+            }
+
+            const { error: insertError } = await supabase
+                .from('project_requests')
+                .insert({
+                    full_name: data.fullName,
+                    email: data.email,
+                    phone: data.phone,
+                    organization_type: data.organizationType,
+                    project_field: data.projectField,
+                    features: data.features,
+                    description: data.description,
+                    platform: data.platform,
+                    budget_range: data.budgetRange,
+                    deadline: data.deadline,
+                    nda_required: data.ndaRequired,
+                    file_url: fileUrl,
+                    status: 'pending'
+                })
+
+            if (insertError) throw insertError
 
             setIsSuccess(true)
         } catch (error) {
             console.error("Error submitting form:", error)
+            // Ideally show a toast error here
         } finally {
             setIsSubmitting(false)
+        }
+    }
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setSelectedFile(e.target.files[0])
         }
     }
 
@@ -165,7 +204,7 @@ export function ProjectRequestForm() {
                                     <div className="space-y-2">
                                         <Label>Organization Type</Label>
                                         <RadioGroup
-                                            onValueChange={(val) => setValue("organizationType", val as any)}
+                                            onValueChange={(val) => setValue("organizationType", val as "student" | "startup" | "business" | "enterprise")}
                                             defaultValue={watch("organizationType")}
                                             className="grid grid-cols-2 md:grid-cols-4 gap-4"
                                         >
@@ -212,9 +251,35 @@ export function ProjectRequestForm() {
                                     </div>
 
                                     <div className="space-y-2">
+                                        <Label>Key Features</Label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {["User Auth", "Payments", "Admin Dashboard", "Analytics", "Chat/Messaging", "File Upload"].map((feature) => (
+                                                <div key={feature} className="flex items-center space-x-2">
+                                                    <Checkbox
+                                                        id={feature}
+                                                        onCheckedChange={(checked) => {
+                                                            const current = watch("features") || []
+                                                            if (checked) {
+                                                                setValue("features", [...current, feature])
+                                                            } else {
+                                                                setValue("features", current.filter(f => f !== feature))
+                                                            }
+                                                        }}
+                                                        checked={(watch("features") || []).includes(feature)}
+                                                    />
+                                                    <Label htmlFor={feature} className="text-sm font-normal cursor-pointer">{feature}</Label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {errors.features && (
+                                            <p className="text-xs text-destructive">{errors.features.message}</p>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-2">
                                         <Label>Platform</Label>
                                         <RadioGroup
-                                            onValueChange={(val) => setValue("platform", val as any)}
+                                            onValueChange={(val) => setValue("platform", val as "web" | "mobile" | "both")}
                                             defaultValue={watch("platform")}
                                             className="flex gap-4"
                                         >
@@ -295,12 +360,20 @@ export function ProjectRequestForm() {
 
                                     <div className="space-y-2">
                                         <Label>Attachments (Optional)</Label>
-                                        <div className="border-2 border-dashed border-muted rounded-lg p-8 text-center hover:bg-muted/50 transition-colors cursor-pointer">
+                                        <div
+                                            className="border-2 border-dashed border-muted rounded-lg p-8 text-center hover:bg-muted/50 transition-colors cursor-pointer"
+                                            onClick={() => fileInputRef.current?.click()}
+                                        >
                                             <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
                                             <p className="text-sm text-muted-foreground">
-                                                Click to upload or drag and drop files
+                                                {selectedFile ? selectedFile.name : "Click to upload or drag and drop files"}
                                             </p>
-                                            <input type="file" className="hidden" />
+                                            <input
+                                                type="file"
+                                                className="hidden"
+                                                ref={fileInputRef}
+                                                onChange={handleFileChange}
+                                            />
                                         </div>
                                     </div>
 
