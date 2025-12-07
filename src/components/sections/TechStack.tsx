@@ -3,12 +3,7 @@
 import { motion } from "framer-motion"
 import { TechLogoMarquee } from "./TechLogoMarquee"
 
-const techStack = {
-    Frontend: ["React", "Next.js", "TypeScript", "Tailwind CSS", "Framer Motion"],
-    Backend: ["Node.js", "Python", "Go", "PostgreSQL", "MongoDB"],
-    Cloud: ["AWS", "Azure", "Vercel", "Docker", "Kubernetes"],
-    "Data & AI": ["TensorFlow", "OpenAI", "Langchain", "Vector DBs", "Analytics"]
-}
+
 
 export function TechStack() {
     return (
@@ -30,30 +25,7 @@ export function TechStack() {
                 {/* Animated Logo Marquee */}
                 <TechLogoMarquee />
 
-                {/* Original Category-based Tech Stack Grid */}
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mt-16">
-                    {Object.entries(techStack).map(([category, technologies], categoryIndex) => (
-                        <motion.div
-                            key={category}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.6, delay: categoryIndex * 0.1 }}
-                        >
-                            <h3 className="text-lg font-bold mb-4 text-primary">{category}</h3>
-                            <div className="flex flex-wrap gap-2">
-                                {technologies.map(tech => (
-                                    <span
-                                        key={tech}
-                                        className="px-3 py-1.5 text-sm rounded-full bg-background/50 border border-primary/10 hover:border-primary/30 transition-colors"
-                                    >
-                                        {tech}
-                                    </span>
-                                ))}
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
+
             </div>
         </section>
     )

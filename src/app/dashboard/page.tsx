@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Loader2, ExternalLink, Github } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { AIProgressTracker } from "@/components/features/AIProgressTracker"
 
 export default function DashboardPage() {
     const [projects, setProjects] = useState<any[]>([])
@@ -25,7 +26,7 @@ export default function DashboardPage() {
             const { data, error } = await supabase
                 .from('projects')
                 .select('*')
-                .eq('user_id', user.id)
+                .eq('client_id', user.id) // Fixed: use client_id instead of user_id
 
             if (data) setProjects(data)
             setLoading(false)
@@ -39,53 +40,45 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="space-y-8 p-8">
-            <h1 className="text-3xl font-bold tracking-tight">My Projects</h1>
+        <div className="space-y-8 p-8 max-w-6xl mx-auto">
+            <div className="flex items-center justify-between">
+                <h1 className="text-3xl font-bold tracking-tight">Client Dashboard</h1>
+                <Button asChild variant="outline">
+                    <Link href="/request">New Request</Link>
+                </Button>
+            </div>
 
             {projects.length === 0 ? (
                 <Card>
                     <CardContent className="py-12 text-center">
-                        <p className="text-muted-foreground mb-4">You don't have any active projects yet.</p>
+                        <p className="text-muted-foreground mb-4">You don&apos;t have any active projects yet.</p>
                         <Button asChild>
                             <Link href="/request">Start a Project</Link>
                         </Button>
                     </CardContent>
                 </Card>
             ) : (
-                <div className="grid gap-6">
+                <div className="space-y-12">
                     {projects.map((project) => (
-                        <Card key={project.id}>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <CardTitle>{project.name}</CardTitle>
-                                <Badge>{project.status}</Badge>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-sm">
-                                        <span>Progress</span>
-                                        <span>{project.progress}%</span>
+                        <div key={project.id} className="space-y-6">
+                            {/* Project Header */}
+                            <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between bg-card p-6 rounded-lg border shadow-sm">
+                                <div>
+                                    <h2 className="text-2xl font-bold">{project.name}</h2>
+                                    <div className="flex gap-2 mt-2">
+                                        <Badge variant="secondary">{project.status}</Badge>
+                                        {project.pricing_plan && <Badge variant="outline">{project.pricing_plan}</Badge>}
                                     </div>
-                                    <Progress value={project.progress} />
                                 </div>
+                                <div className="text-right">
+                                    <div className="text-sm text-muted-foreground">Total Quote</div>
+                                    <div className="text-2xl font-bold">{project.price || "TBD"}</div>
+                                </div>
+                            </div>
 
-                                <div className="flex gap-4">
-                                    {project.live_url && (
-                                        <Button asChild variant="outline" size="sm">
-                                            <a href={project.live_url} target="_blank" rel="noopener noreferrer">
-                                                <ExternalLink className="mr-2 h-4 w-4" /> Live Site
-                                            </a>
-                                        </Button>
-                                    )}
-                                    {project.repo_url && (
-                                        <Button asChild variant="outline" size="sm">
-                                            <a href={project.repo_url} target="_blank" rel="noopener noreferrer">
-                                                <Github className="mr-2 h-4 w-4" /> Repository
-                                            </a>
-                                        </Button>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
+                            {/* AI Progress Tracker */}
+                            <AIProgressTracker projectId={project.id} />
+                        </div>
                     ))}
                 </div>
             )}

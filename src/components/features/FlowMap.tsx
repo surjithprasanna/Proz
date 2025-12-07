@@ -1,308 +1,437 @@
 "use client"
 
 import * as React from "react"
-import { motion } from "framer-motion"
+import { motion, useScroll, useTransform, useSpring } from "framer-motion"
 import {
     Rocket, Building2, GraduationCap, Globe, Smartphone,
-    Layout, Cloud, Palette, Package, Zap, Activity
+    Layout, Cloud, Palette, Package, Zap, Activity,
+    Shield, Server, Database, Lock, Search, BarChart,
+    Users, FileText, Cpu, Eye
 } from "lucide-react"
 
-const FLOW_WIDTH = 3000
-const HQ_X = 2600
-const HQ_Y = 300
+const FLOW_WIDTH = 3200
+const HQ_X = 2800
+const HQ_Y = 600
+const NODE_SHIFT_X = 1300
+const CONNECTOR_LENGTH = 5 // Adjust this to change the stem length
 
-const networkData = {
-    roots: [
-        { id: "startup", label: "Startup", icon: Rocket, x: 200, y: 100 },
-        { id: "enterprise", label: "Enterprise", icon: Building2, x: 200, y: 280 },
-        { id: "academic", label: "Academic", icon: GraduationCap, x: 200, y: 460 }
-    ],
-    branches: [
-        { id: "web", label: "Web App", parent: "startup", icon: Globe, x: 750, y: 40 },
-        { id: "mobile", label: "Mobile", parent: "startup", icon: Smartphone, x: 750, y: 120 },
-        { id: "saas", label: "SaaS", parent: "startup", icon: Zap, x: 750, y: 200 },
-        { id: "dashboard", label: "Dashboard", parent: "enterprise", icon: Layout, x: 750, y: 260 },
-        { id: "cloud", label: "Cloud", parent: "enterprise", icon: Cloud, x: 750, y: 340 },
-        { id: "design", label: "Design", parent: "academic", icon: Palette, x: 750, y: 420 },
-        { id: "portfolio", label: "Portfolio", parent: "academic", icon: Package, x: 750, y: 500 }
-    ],
-    features: [
-        { id: "social", label: "Social", parent: "web", x: 1350, y: 20 },
-        { id: "ecom", label: "E-commerce", parent: "web", x: 1350, y: 80 },
-        { id: "fitness", label: "Fitness", parent: "mobile", x: 1350, y: 110 },
-        { id: "delivery", label: "Delivery", parent: "mobile", x: 1350, y: 160 },
-        { id: "auth", label: "Auth", parent: "saas", x: 1350, y: 190 },
-        { id: "payments", label: "Payments", parent: "saas", x: 1350, y: 240 },
-        { id: "analytics", label: "Analytics", parent: "dashboard", x: 1350, y: 270 },
-        { id: "reporting", label: "Reporting", parent: "dashboard", x: 1350, y: 320 },
-        { id: "aws", label: "AWS", parent: "cloud", x: 1350, y: 350 },
-        { id: "azure", label: "Azure", parent: "cloud", x: 1350, y: 400 },
-        { id: "tokens", label: "Tokens", parent: "design", x: 1350, y: 430 },
-        { id: "components", label: "Components", parent: "design", x: 1350, y: 480 },
-        { id: "showcase", label: "Showcase", parent: "portfolio", x: 1350, y: 510 },
-        { id: "gallery", label: "Gallery", parent: "portfolio", x: 1350, y: 560 }
-    ]
+// Helper to shift nodes right
+const nodeX = (node: Node) => node.x + NODE_SHIFT_X
+
+const NODE_WIDTH: Record<Node["type"], number> = {
+    root: 256,        // w-64
+    branch: 208,      // w-52
+    feature: 192,     // w-48
+    "sub-feature": 160 // w-40
 }
 
-export function FlowMap() {
+const leftEdge = (node: Node) => nodeX(node) - NODE_WIDTH[node.type] / 2
+const rightEdge = (node: Node) => nodeX(node) + NODE_WIDTH[node.type] / 2
+
+// Unified Node Type
+interface Node {
+    id: string
+    label: string
+    icon?: React.ElementType
+    x: number
+    y: number
+    type: 'root' | 'branch' | 'feature' | 'sub-feature'
+    parentId?: string
+}
+
+// Deep Hierarchy Data
+const nodes: Node[] = [
+    // --- ROOTS (x: ~100-200) ---
+    { id: "startup", label: "Startup", icon: Rocket, x: 23, y: 150, type: 'root' },
+    { id: "enterprise", label: "Enterprise", icon: Building2, x: 23, y: 350, type: 'root' },
+    { id: "academic", label: "Academic", icon: GraduationCap, x: 23, y: 550, type: 'root' },
+
+    // --- STARTUP BRANCH (y: 50-250) ---
+    { id: "saas", label: "SaaS MVP", parentId: "startup", icon: Zap, x: 600, y: 100, type: 'branch' },
+    { id: "mobile", label: "Mobile App", parentId: "startup", icon: Smartphone, x: 600, y: 180, type: 'branch' },
+    { id: "marketing", label: "Marketing", parentId: "startup", icon: Layout, x: 600, y: 260, type: 'branch' },
+
+    // Startup Features
+    { id: "auth", label: "Auth", parentId: "saas", x: 1000, y: 80, type: 'feature' },
+    { id: "billing", label: "Billing", parentId: "saas", x: 1000, y: 120, type: 'feature' },
+    { id: "seo", label: "SEO", parentId: "saas", x: 1000, y: 160, type: 'feature' },
+    { id: "ux", label: "UX / UI", parentId: "mobile", x: 1000, y: 200, type: 'feature' },
+    { id: "leads", label: "Leads", parentId: "marketing", x: 1000, y: 240, type: 'feature' },
+    { id: "dash", label: "Dashboard", parentId: "marketing", x: 1000, y: 280, type: 'feature' },
+
+    // Startup Sub-Features (Deep)
+    { id: "conversion", label: "Conversion", parentId: "billing", x: 1400, y: 100, type: 'sub-feature' },
+    { id: "admin", label: "Admin", parentId: "billing", x: 1400, y: 140, type: 'sub-feature' },
+    { id: "funnel", label: "Funnel", parentId: "ux", x: 1400, y: 200, type: 'sub-feature' },
+
+    // --- ENTERPRISE BRANCH (y: 300-450) ---
+    { id: "platform", label: "Platform", parentId: "enterprise", icon: Server, x: 600, y: 330, type: 'branch' },
+    { id: "compliance", label: "Compliance", parentId: "enterprise", icon: Shield, x: 600, y: 390, type: 'branch' },
+    { id: "devops", label: "DevOps", parentId: "enterprise", icon: Cloud, x: 600, y: 450, type: 'branch' },
+
+    // Enterprise Features
+    { id: "iam", label: "IAM", parentId: "platform", x: 1000, y: 320, type: 'feature' },
+    { id: "multitenant", label: "Multi-tenant", parentId: "platform", x: 1000, y: 360, type: 'feature' },
+    { id: "audit", label: "Audit", parentId: "compliance", x: 1000, y: 400, type: 'feature' },
+    { id: "gov", label: "Governance", parentId: "compliance", x: 1000, y: 440, type: 'feature' },
+    { id: "cloud-int", label: "Cloud Int", parentId: "devops", x: 1000, y: 480, type: 'feature' },
+
+    // Enterprise Sub-Features
+    { id: "internal", label: "Internal Tools", parentId: "gov", x: 1400, y: 440, type: 'sub-feature' },
+    { id: "observe", label: "Observability", parentId: "devops", x: 1400, y: 480, type: 'sub-feature' }, // Direct from branch in original, but let's connect
+
+    // --- ACADEMIC BRANCH (y: 500-650) ---
+    { id: "research", label: "Research", parentId: "academic", icon: Search, x: 600, y: 530, type: 'branch' },
+    { id: "learning", label: "Learning", parentId: "academic", icon: GraduationCap, x: 600, y: 590, type: 'branch' },
+    { id: "ailab", label: "AI Lab", parentId: "academic", icon: Cpu, x: 600, y: 650, type: 'branch' },
+
+    // Academic Features
+    { id: "pub", label: "Publications", parentId: "research", x: 1000, y: 530, type: 'feature' },
+    { id: "courses", label: "Courses", parentId: "learning", x: 1000, y: 590, type: 'feature' },
+    { id: "vis", label: "Visuals", parentId: "ailab", x: 1000, y: 650, type: 'feature' },
+
+    // Academic Sub-Features
+    { id: "equip", label: "Equipment", parentId: "courses", x: 1400, y: 590, type: 'sub-feature' },
+    { id: "eval", label: "Evaluation", parentId: "vis", x: 1400, y: 650, type: 'sub-feature' },
+]
+
+const WAVE_COLORS = [
+    "#00ff00", // Neon Green
+    "#00ffff", // Cyan
+    "#ff00ff", // Magenta
+    "#ff0000", // Red
+    "#ffff00", // Yellow
+    "#ff8800", // Orange
+]
+
+export function FlowMap({ children, waveTrigger = 0, scrollContainerRef }: { children?: React.ReactNode, waveTrigger?: number, scrollContainerRef?: React.RefObject<HTMLDivElement | null> }) {
     const containerRef = React.useRef<HTMLDivElement>(null)
     const hqRef = React.useRef<HTMLDivElement>(null)
-    const touchStartRef = React.useRef<number | null>(null)
+    const flowOffsetXRef = React.useRef(0)
 
-    const [isHorizontalScrollActive, setIsHorizontalScrollActive] = React.useState(false)
-    const [flowOffsetX, setFlowOffsetX] = React.useState(0)
-    const [isHQCentered, setIsHQCentered] = React.useState(false)
+    // --- STICKY SCROLL LOGIC ---
+    const { scrollYProgress } = useScroll({
+        target: scrollContainerRef,
+        offset: ["start start", "end end"]
+    })
 
-    const handleWheel = React.useCallback((e: WheelEvent) => {
-        if (!isHorizontalScrollActive || isHQCentered) return
-        e.preventDefault()
-        setFlowOffsetX(prev => {
-            const newOffset = prev - (e.deltaY || e.deltaX)
-            const maxOffset = -(FLOW_WIDTH - (containerRef.current?.clientWidth || window.innerWidth))
-            return Math.max(maxOffset, Math.min(0, newOffset))
-        })
-    }, [isHorizontalScrollActive, isHQCentered])
-
-    const handleTouchStart = React.useCallback((e: TouchEvent) => {
-        if (!isHorizontalScrollActive || isHQCentered) return
-        touchStartRef.current = e.touches[0].clientX
-    }, [isHorizontalScrollActive, isHQCentered])
-
-    const handleTouchMove = React.useCallback((e: TouchEvent) => {
-        if (!isHorizontalScrollActive || isHQCentered || touchStartRef.current === null) return
-        const deltaX = touchStartRef.current - e.touches[0].clientX
-        if (Math.abs(deltaX) > 5) e.preventDefault()
-        setFlowOffsetX(prev => {
-            const newOffset = prev - deltaX
-            const maxOffset = -(FLOW_WIDTH - (containerRef.current?.clientWidth || window.innerWidth))
-            return Math.max(maxOffset, Math.min(0, newOffset))
-        })
-        touchStartRef.current = e.touches[0].clientX
-    }, [isHorizontalScrollActive, isHQCentered])
+    // Map vertical scroll (0 to 1) to horizontal movement (0 to -MAX_SCROLL)
+    const [maxScroll, setMaxScroll] = React.useState(0)
 
     React.useEffect(() => {
-        if (!hqRef.current || !isHorizontalScrollActive) return
-        const hqRect = hqRef.current.getBoundingClientRect()
-        const distance = Math.abs((hqRect.left + hqRect.width / 2) - (window.innerWidth / 2))
-        if (distance < 150 && !isHQCentered) {
-            setIsHQCentered(true)
-            setIsHorizontalScrollActive(false)
+        if (typeof window !== 'undefined') {
+            // Calculate how much we need to move to center the HQ
+            const targetX = HQ_X
+            const centerOffset = window.innerWidth / 2
+            const moveAmount = targetX - centerOffset
+            setMaxScroll(moveAmount)
         }
-    }, [flowOffsetX, isHorizontalScrollActive, isHQCentered])
+    }, [])
 
-    React.useEffect(() => {
-        const container = containerRef.current
-        if (!container) return
-        container.addEventListener('wheel', handleWheel, { passive: false })
-        container.addEventListener('touchstart', handleTouchStart, { passive: false })
-        container.addEventListener('touchmove', handleTouchMove, { passive: false })
-        return () => {
-            container.removeEventListener('wheel', handleWheel)
-            container.removeEventListener('touchstart', handleTouchStart)
-            container.removeEventListener('touchmove', handleTouchMove)
+    const rawX = useTransform(scrollYProgress, [0, 1], [0, -maxScroll])
+    const flowOffsetX = useSpring(rawX, { stiffness: 100, damping: 20, mass: 0.5 })
+
+    // Sync ref for origin calc
+    flowOffsetX.on("change", (latest) => {
+        flowOffsetXRef.current = latest
+    })
+
+    // Wave Logic
+    const waveColor = React.useMemo(() => {
+        if (waveTrigger === 0) return "#22c55e" // Default green
+        return WAVE_COLORS[(waveTrigger - 1) % WAVE_COLORS.length]
+    }, [waveTrigger])
+
+    // Origin Point Calculation
+    const [origin, setOrigin] = React.useState({ x: 0, y: 0 })
+
+    const updateOrigin = React.useCallback(() => {
+        const btn = document.getElementById('view-portfolio-btn')
+        if (btn && containerRef.current) {
+            const btnRect = btn.getBoundingClientRect()
+            const containerRect = containerRef.current.getBoundingClientRect()
+
+            // Calculate X relative to the container, but SUBTRACT the current flow offset
+            // This puts the point in the "virtual" coordinate space of the SVG
+            const relativeX = (btnRect.right - containerRect.left) - flowOffsetXRef.current
+            const relativeY = btnRect.top - containerRect.top + btnRect.height / 2
+
+            setOrigin({ x: relativeX, y: relativeY })
         }
-    }, [handleWheel, handleTouchStart, handleTouchMove])
+    }, [])
+
+
+
+
+
+    // Initial Origin Update
+    React.useEffect(() => {
+        updateOrigin()
+        window.addEventListener('resize', updateOrigin)
+
+        // Fix: Re-calculate after button animation
+        setTimeout(updateOrigin, 100)
+        setTimeout(updateOrigin, 1000)
+        setTimeout(updateOrigin, 2000)
+
+        return () => window.removeEventListener('resize', updateOrigin)
+    }, [updateOrigin])
+
+
+    // --- CONNECTION PATHS ---
+    const getPath = (x1: number, y1: number, x2: number, y2: number) => {
+        const midX = (x1 + x2) / 2
+        return `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`
+    }
+
+    // 1. Origin to Roots
+    const rootConnections = nodes.filter(n => n.type === 'root').map(node => ({
+        end: node
+    }))
+
+    // 2. Internal Connections
+    const internalConnections = nodes.filter(n => n.parentId).map(node => {
+        const parent = nodes.find(p => p.id === node.parentId)
+        return parent ? { start: parent, end: node } : null
+    }).filter(Boolean) as { start: Node, end: Node }[]
+
+    // 3. Terminal Connections (Leaves)
+    const terminalConnections = nodes.filter(n => {
+        const isParent = nodes.some(child => child.parentId === n.id)
+        return !isParent
+    }).map(node => ({
+        start: node,
+        end: { x: HQ_X, y: HQ_Y } // Target HQ
+    }))
 
     return (
-        <div
-            ref={containerRef}
-            className="relative w-full h-full bg-transparent overflow-hidden"
-            onMouseEnter={() => !isHQCentered && setIsHorizontalScrollActive(true)}
-            onMouseLeave={() => setIsHorizontalScrollActive(false)}
-        >
+        <div ref={containerRef} className="relative w-full h-full bg-transparent overflow-hidden pointer-events-auto">
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808006_1px,transparent_1px),linear-gradient(to_bottom,#80808006_1px,transparent_1px)] bg-[size:40px_40px] opacity-20" />
 
             <motion.div style={{ x: flowOffsetX }} className="absolute inset-0">
+                {/* Hero Content Layer */}
+                <div className="absolute inset-y-0 left-0 w-screen flex items-center justify-center pointer-events-auto z-10">
+                    {children}
+                </div>
+
                 <svg className="absolute inset-0 pointer-events-none" style={{ width: FLOW_WIDTH, height: '100%' }}>
                     <defs>
-                        <linearGradient id="flow-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
-                            <stop offset="50%" stopColor="hsl(var(--primary))" stopOpacity="0.8" />
-                            <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
-                        </linearGradient>
-                        <filter id="glow-filter">
-                            <feGaussianBlur stdDeviation="4" result="coloredBlur" />
-                            <feMerge>
-                                <feMergeNode in="coloredBlur" />
-                                <feMergeNode in="SourceGraphic" />
-                            </feMerge>
+                        <filter id="glow-filter" x="-20%" y="-20%" width="140%" height="140%">
+                            <feGaussianBlur stdDeviation="2" result="blur" />
+                            <feComposite in="SourceGraphic" in2="blur" operator="over" />
                         </filter>
                     </defs>
 
-                    {networkData.branches.map((branch, i) => {
-                        const root = networkData.roots.find(r => r.id === branch.parent)!
-                        const path = `M ${root.x + 240} ${root.y + 30} C ${root.x + 450} ${root.y + 30}, ${branch.x - 150} ${branch.y + 25}, ${branch.x - 10} ${branch.y + 25}`
+                    {/* Origin Stem */}
+                    <motion.path
+                        d={`M ${origin.x} ${origin.y} L ${origin.x + CONNECTOR_LENGTH} ${origin.y}`}
+                        stroke={waveTrigger > 0 ? waveColor : "#ffffff"}
+                        strokeWidth="2"
+                        initial={false}
+                        animate={{ stroke: waveTrigger > 0 ? [waveColor, "#ffffff"] : "#ffffff" }}
+                        transition={{ duration: 1, delay: 0 }}
+                    />
+
+                    {/* Origin to Roots */}
+                    {rootConnections.map((conn, i) => {
+                        const startX = origin.x + CONNECTOR_LENGTH
+                        const endX = leftEdge(conn.end)
+                        const path = getPath(startX, origin.y, endX, conn.end.y)
+
+                        // Delay based on distance/index
+                        const delay = 0.1 + (conn.end.x / 3000)
+
                         return (
-                            <g key={`root-${branch.id}`}>
-                                <path d={path} stroke="hsl(var(--primary))" strokeOpacity="0.15" strokeWidth="2" fill="none" />
-                                <motion.path
-                                    d={path}
-                                    stroke="url(#flow-gradient)"
-                                    strokeWidth="2.5"
-                                    fill="none"
-                                    filter="url(#glow-filter)"
-                                    initial={{ pathLength: 0 }}
-                                    animate={{ pathLength: 1 }}
-                                    transition={{ duration: 1.5, delay: 0.1 * i }}
-                                />
-                                <motion.circle r="5" fill="hsl(var(--primary))" filter="url(#glow-filter)">
-                                    <animateMotion dur="3s" repeatCount="indefinite" begin={`${i * 0.3}s`} path={path} />
-                                </motion.circle>
-                            </g>
+                            <motion.path
+                                key={`root-${i}`}
+                                d={path}
+                                stroke="#ffffff"
+                                strokeWidth="2"
+                                fill="none"
+                                initial={false}
+                                animate={{
+                                    stroke: waveTrigger > 0 ? [waveColor, "#ffffff"] : "#ffffff",
+                                    strokeWidth: waveTrigger > 0 ? [4, 2] : 2,
+                                    strokeOpacity: waveTrigger > 0 ? [1, 0.2] : 0.2
+                                }}
+                                transition={{ duration: 1.5, delay: delay }}
+                            />
                         )
                     })}
 
-                    {networkData.features.map((feature, i) => {
-                        const branch = networkData.branches.find(b => b.id === feature.parent)!
-                        const path = `M ${branch.x + 180} ${branch.y + 25} C ${branch.x + 380} ${branch.y + 25}, ${feature.x - 150} ${feature.y + 18}, ${feature.x - 10} ${feature.y + 18}`
+                    {/* Internal Connections */}
+                    {internalConnections.map((conn, i) => {
+                        const startX = rightEdge(conn.start)
+                        const endX = leftEdge(conn.end)
+                        const path = getPath(startX, conn.start.y, endX, conn.end.y)
+
+                        const delay = 0.2 + (conn.start.x / 3000)
+
                         return (
-                            <g key={`branch-${feature.id}`}>
-                                <path d={path} stroke="hsl(var(--primary))" strokeOpacity="0.12" strokeWidth="1.5" fill="none" />
-                                <motion.path
-                                    d={path}
-                                    stroke="url(#flow-gradient)"
-                                    strokeWidth="2"
-                                    fill="none"
-                                    filter="url(#glow-filter)"
-                                    initial={{ pathLength: 0 }}
-                                    animate={{ pathLength: 1 }}
-                                    transition={{ duration: 1.2, delay: 0.3 + i * 0.04 }}
-                                />
-                                <motion.circle r="4" fill="hsl(var(--primary))" opacity="0.8">
-                                    <animateMotion dur="4s" repeatCount="indefinite" begin={`${i * 0.2}s`} path={path} />
-                                </motion.circle>
-                            </g>
+                            <motion.path
+                                key={`int-${i}`}
+                                d={path}
+                                stroke="#ffffff"
+                                strokeWidth="2"
+                                fill="none"
+                                initial={false}
+                                animate={{
+                                    stroke: waveTrigger > 0 ? [waveColor, "#ffffff"] : "#ffffff",
+                                    strokeOpacity: waveTrigger > 0 ? [1, 0.2] : 0.2
+                                }}
+                                transition={{ duration: 1.5, delay: delay }}
+                            />
                         )
                     })}
 
-                    {networkData.features.map((feature, i) => {
-                        const controlX = feature.x + (HQ_X - feature.x) * 0.6
-                        const path = `M ${feature.x + 140} ${feature.y + 18} Q ${controlX} ${feature.y + 18} ${HQ_X} ${HQ_Y}`
+                    {/* Terminal Connections (Leaves to Merge Point) */}
+                    {terminalConnections.map((conn, i) => {
+                        const startX = rightEdge(conn.start)
+                        const mergeX = HQ_X - 200
+                        const mergeY = HQ_Y + 60
+                        const path = getPath(startX, conn.start.y, mergeX, mergeY)
+
+                        const delay = 0.5 + (conn.start.x / 3000)
+
                         return (
-                            <g key={`hq-${feature.id}`}>
-                                <motion.path
-                                    d={path}
-                                    stroke="hsl(var(--primary))"
-                                    strokeWidth="1"
-                                    strokeOpacity="0.25"
-                                    fill="none"
-                                    initial={{ pathLength: 0, opacity: 0 }}
-                                    animate={{ pathLength: 1, opacity: 1 }}
-                                    transition={{ duration: 2, delay: 1 + i * 0.06 }}
-                                />
-                                <motion.circle r="3" fill="hsl(var(--primary))" opacity="0.6">
-                                    <animateMotion dur="5s" repeatCount="indefinite" begin={`${1 + i * 0.15}s`} path={path} />
-                                </motion.circle>
-                            </g>
+                            <motion.path
+                                key={`term-${i}`}
+                                d={path}
+                                stroke="#ffffff"
+                                strokeWidth="1"
+                                fill="none"
+                                initial={false}
+                                animate={{
+                                    stroke: waveTrigger > 0 ? [waveColor, "#ffffff"] : "#ffffff",
+                                    strokeOpacity: waveTrigger > 0 ? [1, 0.2] : 0.2
+                                }}
+                                transition={{ duration: 1.5, delay: delay }}
+                            />
                         )
                     })}
+
+                    {/* Single Line from Merge Point to HQ Bottom Left */}
+                    <motion.path
+                        d={`M ${HQ_X - 200} ${HQ_Y + 60} L ${HQ_X - 60} ${HQ_Y + 60}`}
+                        stroke="#ffffff"
+                        strokeWidth="2"
+                        fill="none"
+                        filter="url(#glow-filter)"
+                        initial={false}
+                        animate={{
+                            stroke: waveTrigger > 0 ? [waveColor, "#ffffff"] : "#ffffff",
+                            strokeWidth: waveTrigger > 0 ? [4, 2] : 2
+                        }}
+                        transition={{ duration: 1.5, delay: 1.5 }}
+                    />
+
                 </svg>
 
-                {networkData.roots.map((node, i) => (
-                    <RootNode key={node.id} node={node} delay={i * 0.12} />
-                ))}
-                {networkData.branches.map((node, i) => (
-                    <BranchNode key={node.id} node={node} delay={0.4 + i * 0.08} />
-                ))}
-                {networkData.features.map((node, i) => (
-                    <FeatureNode key={node.id} node={node} delay={0.8 + i * 0.05} />
+                {/* Render Nodes */}
+                {nodes.map((node, i) => (
+                    <GenericNode key={node.id} node={node} delay={i * 0.05} waveTrigger={waveTrigger} waveColor={waveColor} />
                 ))}
 
+                {/* HQ Node (Logo Only) */}
                 <motion.div
                     ref={hqRef}
-                    className="absolute w-96 h-96 rounded-[2rem] border-2 border-primary/50 bg-gradient-to-br from-background/95 via-primary/5 to-background/95 backdrop-blur-2xl flex flex-col items-center justify-center overflow-hidden shadow-[0_0_80px_-20px_hsl(var(--primary)/0.4)]"
-                    style={{ left: HQ_X - 192, top: HQ_Y - 192 }}
+                    className="absolute flex flex-col items-center justify-center pointer-events-auto cursor-pointer"
+                    style={{ left: HQ_X, top: HQ_Y, translateX: "90%", translateY: "-80%" }}
                     initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 1.2, delay: 2 }}
+                    animate={{
+                        opacity: 1,
+                        scale: waveTrigger > 0 ? [1, 1.2, 1] : 1,
+                    }}
+                    transition={{ duration: 1.2, delay: 2.5 }}
                 >
-                    <div className="relative z-10 flex flex-col items-center">
-                        <Building2 className="w-32 h-32 text-primary mb-6 drop-shadow-[0_0_20px_rgba(var(--primary),0.7)]" />
+                    <div className="relative z-10 flex flex-col items-center group">
+                        <Building2
+                            className="w-32 h-32 text-primary mb-6 drop-shadow-[0_0_20px_rgba(var(--primary),0.7)] transition-transform group-hover:scale-110 duration-500"
+                            style={{ color: waveTrigger > 0 ? waveColor : undefined }}
+                        />
                         <div className="text-4xl font-bold text-white tracking-[0.4em] mb-2">PROZ HQ</div>
                         <div className="text-xs text-primary/60 uppercase tracking-[0.3em]">Production Ready</div>
                     </div>
-                    <motion.div
-                        className="absolute inset-0 bg-primary/5"
-                        animate={{ height: ["0%", "100%", "0%"] }}
-                        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                        style={{ bottom: 0, top: "auto" }}
-                    />
-                    <motion.div
-                        className="absolute inset-0 border-2 border-primary/20 rounded-[2rem]"
-                        animate={{ scale: [1, 1.06, 1], opacity: [0.3, 0, 0.3] }}
-                        transition={{ duration: 5, repeat: Infinity }}
-                    />
                 </motion.div>
             </motion.div>
 
-            {!isHQCentered && (
-                <motion.div
-                    className="absolute bottom-16 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full bg-background/70 backdrop-blur-lg border border-primary/30 text-sm font-medium text-foreground flex items-center gap-3 shadow-lg"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 2.5 }}
-                >
-                    <Activity className="w-5 h-5 text-primary animate-pulse" />
-                    <span>Scroll to explore the network →</span>
-                </motion.div>
-            )}
+            <motion.div
+                className="absolute bottom-16 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full bg-background/70 backdrop-blur-lg border border-primary/30 text-sm font-medium text-foreground flex items-center gap-3 shadow-lg"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 3 }}
+            >
+                <Activity className="w-5 h-5 text-primary animate-pulse" />
+                <span>Scroll down to explore →</span>
+            </motion.div>
         </div>
     )
 }
 
-function RootNode({ node, delay }: any) {
-    const Icon = node.icon
-    return (
-        <motion.div
-            className="absolute w-64 px-6 py-5 rounded-2xl border-l-[5px] border-primary/60 bg-background/95 backdrop-blur-md flex items-center gap-4 shadow-lg cursor-pointer group"
-            style={{ left: node.x, top: node.y }}
-            initial={{ opacity: 0, x: -40 }}
-            animate={{ opacity: 1, x: 0 }}
-            whileHover={{ scale: 1.05, boxShadow: "0 0 50px -15px hsl(var(--primary)/0.5)" }}
-            transition={{ duration: 0.6, delay }}
-        >
-            <div className="p-3 rounded-xl bg-primary/15 text-primary">
-                <Icon className="w-7 h-7" />
-            </div>
-            <div>
-                <div className="text-lg font-bold text-white mb-0.5">{node.label}</div>
-                <div className="text-[9px] text-muted-foreground uppercase tracking-[0.15em]">Root Category</div>
-            </div>
-        </motion.div>
-    )
-}
+function GenericNode({ node, delay, waveTrigger, waveColor }: { node: Node, delay: number, waveTrigger: number, waveColor: string }) {
+    const Icon = node.icon || Activity
 
-function BranchNode({ node, delay }: any) {
-    const Icon = node.icon
-    return (
-        <motion.div
-            className="absolute w-52 px-5 py-4 rounded-xl border border-white/15 bg-background/90 backdrop-blur-sm flex items-center gap-3 shadow-md cursor-pointer group"
-            style={{ left: node.x, top: node.y }}
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            whileHover={{ scale: 1.08, borderColor: "hsl(var(--primary))", boxShadow: "0 0 35px -10px hsl(var(--primary)/0.4)" }}
-            transition={{ duration: 0.5, delay }}
-        >
-            <div className="p-2.5 rounded-lg bg-primary/12 text-primary">
-                <Icon className="w-5 h-5" />
-            </div>
-            <span className="text-base font-semibold text-foreground">{node.label}</span>
-        </motion.div>
-    )
-}
+    // Size and style based on type
+    let width = "w-48"
+    let padding = "px-4 py-3"
+    let textSize = "text-sm"
 
-function FeatureNode({ node, delay }: any) {
+    if (node.type === 'root') {
+        width = "w-64"
+        padding = "px-6 py-5"
+        textSize = "text-lg"
+    } else if (node.type === 'branch') {
+        width = "w-52"
+        padding = "px-5 py-4"
+        textSize = "text-base"
+    } else if (node.type === 'sub-feature') {
+        width = "w-40"
+        padding = "px-3 py-2"
+        textSize = "text-xs"
+    }
+
+    // Calculate wave delay based on X position
+    const waveDelay = node.x / 2000 // Adjust speed
+
     return (
         <motion.div
-            className="absolute w-44 px-4 py-3 rounded-lg border border-white/10 bg-background/85 backdrop-blur-sm flex items-center gap-2.5 shadow-sm cursor-pointer group"
-            style={{ left: node.x, top: node.y }}
+            className={`absolute ${width} ${padding} rounded-xl border border-white/10 bg-background/80 backdrop-blur-sm flex items-center gap-3 shadow-sm cursor-pointer group
+                ${node.type === 'root' ? 'border-l-[5px] border-l-primary/60' : ''}
+            `}
+            style={{ left: nodeX(node), top: node.y, translateX: "-50%", translateY: "-50%" }} // Center anchor
             initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            whileHover={{ scale: 1.1, borderColor: "hsl(var(--primary))", boxShadow: "0 0 25px -8px hsl(var(--primary)/0.35)" }}
-            transition={{ duration: 0.4, delay }}
+            animate={{
+                opacity: 1,
+                scale: 1,
+                borderColor: waveTrigger > 0 ? [null, waveColor, "rgba(255,255,255,0.1)"] : "rgba(255,255,255,0.1)",
+                boxShadow: waveTrigger > 0 ? [null, `0 0 20px ${waveColor}`, "none"] : "none"
+            }}
+            whileHover={{ scale: 1.05, borderColor: "hsl(var(--primary))", boxShadow: "0 0 25px -5px hsl(var(--primary)/0.3)" }}
+            transition={{
+                duration: 0.5,
+                delay: waveTrigger > 0 ? waveDelay : delay, // Use wave delay if triggered
+                borderColor: { duration: 1, delay: waveDelay },
+                boxShadow: { duration: 1, delay: waveDelay }
+            }}
         >
-            <div className="w-2.5 h-2.5 rounded-full bg-primary/70 group-hover:bg-primary transition-colors flex-shrink-0" />
-            <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">{node.label}</span>
+            {node.icon && (
+                <div className={`p-2 rounded-lg bg-primary/10 text-primary ${node.type === 'root' ? 'p-3' : ''}`}>
+                    <Icon
+                        className={`${node.type === 'root' ? 'w-6 h-6' : 'w-4 h-4'}`}
+                        style={{ color: waveTrigger > 0 ? waveColor : undefined }} // Animate icon color? simpler to just set it
+                    />
+                </div>
+            )}
+            {!node.icon && (
+                <div
+                    className="w-2 h-2 rounded-full bg-primary/50 group-hover:bg-primary transition-colors"
+                    style={{ backgroundColor: waveTrigger > 0 ? waveColor : undefined }}
+                />
+            )}
+            <div>
+                <div className={`${textSize} font-semibold text-foreground`}>{node.label}</div>
+                {node.type === 'root' && <div className="text-[9px] text-muted-foreground uppercase tracking-wider">Category</div>}
+            </div>
         </motion.div>
     )
 }

@@ -14,6 +14,7 @@ const navItems = [
   { name: "Process", href: "/process" },
   { name: "Pricing", href: "/pricing" },
   { name: "About", href: "/about" },
+  { name: "Login", href: "/login" },
 ]
 
 export function Navbar() {

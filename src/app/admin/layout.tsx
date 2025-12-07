@@ -2,13 +2,16 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, FileText, Database, LogOut } from "lucide-react"
+import { Toaster } from "@/components/ui/toaster"
+import { LayoutDashboard, FileText, Database, LogOut, Users, Briefcase } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 
 const adminNavItems = [
     { name: "Overview", href: "/admin", icon: LayoutDashboard },
+    { name: "Clients", href: "/admin/clients", icon: Users },
+    { name: "Projects", href: "/admin/projects", icon: Briefcase },
     { name: "Requests", href: "/admin/requests", icon: FileText },
     { name: "CMS Studio", href: "/studio", icon: Database },
 ]
@@ -19,9 +22,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const supabase = createClient()
 
     const handleLogout = async () => {
+        // Clear Supabase session (if any)
         await supabase.auth.signOut()
-        router.push("/login")
+
+        // Clear Admin Cookie via API
+        await fetch('/api/admin/logout', { method: 'POST' })
+
+        router.push("/admin/login")
         router.refresh()
+    }
+
+    // If on login page, render full screen without sidebar
+    if (pathname === '/admin/login') {
+        return (
+            <>
+                {children}
+                <Toaster />
+            </>
+        )
     }
 
     return (
@@ -63,6 +81,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <div className="p-8">
                     {children}
                 </div>
+                <Toaster />
             </main>
         </div>
     )
