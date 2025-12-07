@@ -13,6 +13,7 @@ import { TechStack } from "@/components/sections/TechStack"
 import { Testimonials } from "@/components/sections/Testimonials"
 import { ProjectRequestCTA } from "@/components/sections/ProjectRequestCTA"
 import { TrustEngine } from "@/components/sections/TrustEngine"
+import { ClientPortalShowcase } from "@/components/sections/ClientPortalShowcase"
 
 export default function Home() {
     const [waveTrigger, setWaveTrigger] = React.useState(0)
@@ -102,6 +103,7 @@ export default function Home() {
 
             {/* New Sections */}
             <TrustEngine />
+            <ClientPortalShowcase />
             <FeaturedProjects />
             <TechStack />
             <Testimonials />
