@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Loader2 } from "lucide-react"
+import { Loader2, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,8 +12,7 @@ import { createClient } from "@/lib/supabase/client"
 import { PageWrapper } from "@/components/layout/PageWrapper"
 
 export default function LoginPage() {
-    const [email, setEmail] = useState("")
-    const [password, setPassword] = useState("")
+    const [accessCode, setAccessCode] = useState("")
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const router = useRouter()
@@ -25,9 +24,12 @@ export default function LoginPage() {
         setError(null)
 
         try {
+            // Construct email from access code
+            const email = `${accessCode}@proz-client.com`
+
             const { error } = await supabase.auth.signInWithPassword({
                 email,
-                password,
+                password: accessCode, // Password is the same as access code
             })
 
             if (error) throw error
@@ -36,7 +38,7 @@ export default function LoginPage() {
             router.refresh()
         } catch (err) {
             if (err instanceof Error) {
-                setError(err.message)
+                setError("Invalid Access Code. Please try again.")
             } else {
                 setError("An unknown error occurred")
             }
@@ -48,51 +50,39 @@ export default function LoginPage() {
     return (
         <PageWrapper>
             <div className="container mx-auto px-4 py-20 flex justify-center items-center min-h-[80vh]">
-                <Card className="w-full max-w-md">
+                <Card className="w-full max-w-md bg-zinc-900 border-zinc-800">
                     <CardHeader>
-                        <CardTitle className="text-2xl">Welcome Back</CardTitle>
-                        <CardDescription>Enter your credentials to access your dashboard.</CardDescription>
+                        <CardTitle className="text-2xl text-center">Client Portal</CardTitle>
+                        <CardDescription className="text-center">Enter your unique project access code.</CardDescription>
                     </CardHeader>
                     <form onSubmit={handleLogin}>
                         <CardContent className="space-y-4">
                             {error && (
-                                <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
+                                <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md text-center">
                                     {error}
                                 </div>
                             )}
                             <div className="space-y-2">
-                                <Label htmlFor="email">Email</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    placeholder="name@example.com"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="password">Password</Label>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                />
+                                <Label htmlFor="accessCode">Access Code</Label>
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        id="accessCode"
+                                        type="text"
+                                        placeholder="PROZ-XXXX-YYYY"
+                                        value={accessCode}
+                                        onChange={(e) => setAccessCode(e.target.value)}
+                                        className="pl-10 font-mono tracking-wider uppercase"
+                                        required
+                                    />
+                                </div>
                             </div>
                         </CardContent>
                         <CardFooter className="flex flex-col gap-4">
                             <Button type="submit" className="w-full" disabled={isLoading}>
                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Sign In
+                                Access Project
                             </Button>
-                            <div className="text-sm text-center text-muted-foreground">
-                                Don&apos;t have an account?{" "}
-                                <Link href="/signup" className="text-primary hover:underline">
-                                    Sign up
-                                </Link>
-                            </div>
                         </CardFooter>
                     </form>
                 </Card>

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client"
 import {
     Activity, Users, Briefcase, DollarSign,
     Shield, Cpu, Terminal, Zap,
-    ArrowUpRight, Lock, Server
+    ArrowUpRight, Lock, Server, FileText, AlertCircle
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -177,8 +177,290 @@ export default function AdminDashboard() {
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* Request Management */}
+                <Card className="bg-green-900/10 border-green-500/30 lg:col-span-3">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-green-400">
+                            <Server className="w-5 h-5" />
+                            INCOMING_REQUEST_STREAM
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <RequestList />
+                    </CardContent>
+                </Card>
+
+                {/* Create Project Form (Legacy/Manual) */}
+                <Card className="bg-green-900/10 border-green-500/30 lg:col-span-3">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-green-400">
+                            <Terminal className="w-5 h-5" />
+                            MANUAL_PROJECT_INITIATION
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <CreateProjectForm />
+                    </CardContent>
+                </Card>
             </div>
         </div>
+    )
+}
+
+function RequestList() {
+    const [requests, setRequests] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [selectedRequest, setSelectedRequest] = useState<any>(null)
+    const supabase = createClient()
+
+    useEffect(() => {
+        const fetchRequests = async () => {
+            const { data } = await supabase
+                .from('project_requests')
+                .select('*')
+                .order('created_at', { ascending: false })
+            if (data) setRequests(data)
+            setLoading(false)
+        }
+        fetchRequests()
+    }, [])
+
+    if (loading) return <div className="text-green-500/50 animate-pulse">SCANNING_NETWORK...</div>
+
+    return (
+        <div className="space-y-4">
+            {requests.map(req => (
+                <div key={req.id} className="border border-green-500/20 bg-black/40 p-4 rounded hover:border-green-500/50 transition-colors">
+                    <div className="flex justify-between items-start mb-2">
+                        <div>
+                            <div className="text-green-400 font-bold">{req.project_field}</div>
+                            <div className="text-xs text-green-500/60">{req.full_name} | {req.profession}</div>
+                        </div>
+                        <div className={`text-xs px-2 py-1 rounded border flex items-center gap-1
+                            ${req.proposal_status === 'quoted' ? 'border-yellow-500 text-yellow-500' :
+                                req.proposal_status === 'modification_requested' ? 'border-orange-500 text-orange-500' :
+                                    'border-green-500/30 text-green-500/60'}`}>
+                            {req.proposal_status === 'modification_requested' && <AlertCircle className="w-3 h-3" />}
+                            {req.proposal_status === 'quoted' ? 'QUOTED' :
+                                req.proposal_status === 'modification_requested' ? 'MODIFICATION_REQ' : 'PENDING'}
+                        </div>
+                    </div>
+                    <p className="text-xs text-green-500/80 mb-4 line-clamp-2">{req.project_goal}</p>
+
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className={`w-full border-green-500/30 hover:bg-green-500/10 text-green-400 
+                            ${req.proposal_status === 'modification_requested' ? 'bg-orange-900/20 border-orange-500/50 text-orange-400' : ''}`}
+                        onClick={() => setSelectedRequest(req)}
+                    >
+                        {req.proposal_status === 'quoted' ? 'MODIFY_PROPOSAL' :
+                            req.proposal_status === 'modification_requested' ? 'REVIEW_MODIFICATION' : 'INITIATE_PROPOSAL_SEQUENCE'}
+                    </Button>
+
+                    {selectedRequest?.id === req.id && (
+                        <ProposalForm request={req} onClose={() => setSelectedRequest(null)} />
+                    )}
+                </div>
+            ))}
+        </div>
+    )
+}
+
+function ProposalForm({ request, onClose }: { request: any, onClose: () => void }) {
+    const [price, setPrice] = useState(request.proposal_price || "")
+    const [accessCode, setAccessCode] = useState(`PROZ-${Math.floor(1000 + Math.random() * 9000)}`)
+    const [docName, setDocName] = useState("")
+    const [docUrl, setDocUrl] = useState("")
+    const [loading, setLoading] = useState(false)
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setLoading(true)
+        try {
+            // Construct docs array
+            const docs = docName && docUrl ? [{ name: docName, url: docUrl, type: 'link' }] : []
+
+            const res = await fetch('/api/admin/submit-proposal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    requestId: request.id,
+                    proposalPrice: price,
+                    proposalDocs: docs,
+                    accessCode: accessCode
+                })
+            })
+            if (!res.ok) throw new Error('Failed')
+            alert('PROPOSAL_TRANSMITTED')
+            onClose()
+            window.location.reload() // Lazy refresh
+        } catch (e) {
+            alert('TRANSMISSION_ERROR')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    return (
+        <form onSubmit={handleSubmit} className="mt-4 p-4 border-t border-green-500/20 bg-green-500/5 rounded">
+            <h4 className="text-sm font-bold text-green-400 mb-4">CONFIGURE_PROPOSAL</h4>
+            <div className="space-y-4">
+                <div>
+                    <label className="text-xs text-green-500/60">ESTIMATED_COST</label>
+                    <input
+                        className="w-full bg-black border border-green-500/30 rounded p-2 text-green-400 text-sm"
+                        value={price}
+                        onChange={e => setPrice(e.target.value)}
+                        placeholder="$5,000 - $8,000"
+                        required
+                    />
+                </div>
+                <div>
+                    <label className="text-xs text-green-500/60">ASSIGN_ACCESS_CODE</label>
+                    <input
+                        className="w-full bg-black border border-green-500/30 rounded p-2 text-green-400 text-sm font-mono"
+                        value={accessCode}
+                        onChange={e => setAccessCode(e.target.value)}
+                        required
+                    />
+                </div>
+
+                <div className="border-t border-green-500/20 pt-4">
+                    <label className="text-xs text-green-500/60 flex items-center gap-2 mb-2">
+                        <FileText className="w-3 h-3" /> ATTACH_DOCUMENT (OPTIONAL)
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                        <input
+                            className="bg-black border border-green-500/30 rounded p-2 text-green-400 text-xs"
+                            value={docName}
+                            onChange={e => setDocName(e.target.value)}
+                            placeholder="Document Name (e.g. Project Plan)"
+                        />
+                        <input
+                            className="bg-black border border-green-500/30 rounded p-2 text-green-400 text-xs"
+                            value={docUrl}
+                            onChange={e => setDocUrl(e.target.value)}
+                            placeholder="Document URL (e.g. Google Drive Link)"
+                        />
+                    </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                    <Button type="submit" disabled={loading} className="flex-1 bg-green-600 hover:bg-green-700 text-black font-bold text-xs">
+                        {loading ? 'TRANSMITTING...' : 'SEND_PROPOSAL'}
+                    </Button>
+                    <Button type="button" onClick={onClose} variant="ghost" className="text-green-500/60 text-xs">
+                        CANCEL
+                    </Button>
+                </div>
+            </div>
+        </form>
+    )
+}
+
+function CreateProjectForm() {
+    const [loading, setLoading] = useState(false)
+    const [formData, setFormData] = useState({
+        fullName: "",
+        email: "",
+        phone: "",
+        accessCode: "",
+        projectName: "",
+        price: "$5,000",
+        pricingPlan: "Pro Scale"
+    })
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setLoading(true)
+        try {
+            const res = await fetch('/api/admin/create-client', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+            if (!res.ok) throw new Error('Failed to create project')
+            alert('Project Initiated & Access Code Sent!')
+            setFormData({ fullName: "", email: "", phone: "", accessCode: "", projectName: "", price: "$5,000", pricingPlan: "Pro Scale" })
+        } catch (error) {
+            alert('Error initiating project')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    return (
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+                <h3 className="text-green-500/80 font-bold border-b border-green-500/30 pb-2">CLIENT_DETAILS</h3>
+                <div className="space-y-2">
+                    <label className="text-xs text-green-500/60">FULL_NAME</label>
+                    <input
+                        className="w-full bg-black border border-green-500/30 rounded p-2 text-green-400 focus:outline-none focus:border-green-500"
+                        value={formData.fullName}
+                        onChange={e => setFormData({ ...formData, fullName: e.target.value })}
+                        required
+                    />
+                </div>
+                <div className="space-y-2">
+                    <label className="text-xs text-green-500/60">CONTACT_EMAIL</label>
+                    <input
+                        className="w-full bg-black border border-green-500/30 rounded p-2 text-green-400 focus:outline-none focus:border-green-500"
+                        type="email"
+                        value={formData.email}
+                        onChange={e => setFormData({ ...formData, email: e.target.value })}
+                        required
+                    />
+                </div>
+                <div className="space-y-2">
+                    <label className="text-xs text-green-500/60">WHATSAPP_NUMBER</label>
+                    <input
+                        className="w-full bg-black border border-green-500/30 rounded p-2 text-green-400 focus:outline-none focus:border-green-500"
+                        value={formData.phone}
+                        onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                        placeholder="+1234567890"
+                    />
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                <h3 className="text-green-500/80 font-bold border-b border-green-500/30 pb-2">PROJECT_CONFIG</h3>
+                <div className="space-y-2">
+                    <label className="text-xs text-green-500/60">PROJECT_NAME</label>
+                    <input
+                        className="w-full bg-black border border-green-500/30 rounded p-2 text-green-400 focus:outline-none focus:border-green-500"
+                        value={formData.projectName}
+                        onChange={e => setFormData({ ...formData, projectName: e.target.value })}
+                        required
+                    />
+                </div>
+                <div className="space-y-2">
+                    <label className="text-xs text-green-500/60">ACCESS_CODE (PASSWORD)</label>
+                    <div className="flex gap-2">
+                        <input
+                            className="w-full bg-black border border-green-500/30 rounded p-2 text-green-400 focus:outline-none focus:border-green-500 font-mono tracking-widest"
+                            value={formData.accessCode}
+                            onChange={e => setFormData({ ...formData, accessCode: e.target.value })}
+                            placeholder="PROZ-XXXX"
+                            required
+                        />
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="border-green-500/30 text-green-500 hover:bg-green-500/10"
+                            onClick={() => setFormData({ ...formData, accessCode: `PROZ-${Math.floor(1000 + Math.random() * 9000)}` })}
+                        >
+                            GENERATE
+                        </Button>
+                    </div>
+                </div>
+                <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-black font-bold mt-6" disabled={loading}>
+                    {loading ? "INITIALIZING..." : "DEPLOY_PROJECT & NOTIFY_CLIENT"}
+                </Button>
+            </div>
+        </form>
     )
 }
 
