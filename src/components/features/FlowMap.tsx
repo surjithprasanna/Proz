@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { motion, useScroll, useTransform, useSpring } from "framer-motion"
+import Image from "next/image"
 import {
     Rocket, Building2, GraduationCap, Globe, Smartphone,
     Layout, Cloud, Palette, Package, Zap, Activity,
@@ -9,11 +10,13 @@ import {
     Users, FileText, Cpu, Eye
 } from "lucide-react"
 
-const FLOW_WIDTH = 3200
-const HQ_X = 2800
-const HQ_Y = 600
+const FLOW_WIDTH = 3800
+const HQ_X = 3300
+const HQ_Y = 400
 const NODE_SHIFT_X = 1300
 const CONNECTOR_LENGTH = 5 // Adjust this to change the stem length
+const HQ_TEXT_TOP_MARGIN = 24 // Adjust spacing between Image and "PROZ HQ"
+const HQ_SUBTEXT_TOP_MARGIN = 8 // Adjust spacing between "PROZ HQ" and "Production Ready"
 
 // Helper to shift nodes right
 const nodeX = (node: Node) => node.x + NODE_SHIFT_X
@@ -72,13 +75,13 @@ const nodes: Node[] = [
     // Enterprise Features
     { id: "iam", label: "IAM", parentId: "platform", x: 1000, y: 320, type: 'feature' },
     { id: "multitenant", label: "Multi-tenant", parentId: "platform", x: 1000, y: 360, type: 'feature' },
-    { id: "audit", label: "Audit", parentId: "compliance", x: 1000, y: 400, type: 'feature' },
+    { id: "audit", label: "Audit", parentId: "compliance", x: 1000, y: 390, type: 'feature' },
     { id: "gov", label: "Governance", parentId: "compliance", x: 1000, y: 440, type: 'feature' },
     { id: "cloud-int", label: "Cloud Int", parentId: "devops", x: 1000, y: 480, type: 'feature' },
 
     // Enterprise Sub-Features
     { id: "internal", label: "Internal Tools", parentId: "gov", x: 1400, y: 440, type: 'sub-feature' },
-    { id: "observe", label: "Observability", parentId: "devops", x: 1400, y: 480, type: 'sub-feature' }, // Direct from branch in original, but let's connect
+    { id: "observe", label: "Observability", parentId: "cloud-int", x: 1400, y: 480, type: 'sub-feature' },
 
     // --- ACADEMIC BRANCH (y: 500-650) ---
     { id: "research", label: "Research", parentId: "academic", icon: Search, x: 600, y: 530, type: 'branch' },
@@ -287,8 +290,8 @@ export function FlowMap({ children, waveTrigger = 0, scrollContainerRef }: { chi
                     {/* Terminal Connections (Leaves to Merge Point) */}
                     {terminalConnections.map((conn, i) => {
                         const startX = rightEdge(conn.start)
-                        const mergeX = HQ_X - 200
-                        const mergeY = HQ_Y + 60
+                        const mergeX = HQ_X - 400
+                        const mergeY = HQ_Y
                         const path = getPath(startX, conn.start.y, mergeX, mergeY)
 
                         const delay = 0.5 + (conn.start.x / 3000)
@@ -312,7 +315,7 @@ export function FlowMap({ children, waveTrigger = 0, scrollContainerRef }: { chi
 
                     {/* Single Line from Merge Point to HQ Bottom Left */}
                     <motion.path
-                        d={`M ${HQ_X - 200} ${HQ_Y + 60} L ${HQ_X - 60} ${HQ_Y + 60}`}
+                        d={`M ${HQ_X - 400} ${HQ_Y} L ${HQ_X - 300} ${HQ_Y}`}
                         stroke="#ffffff"
                         strokeWidth="2"
                         fill="none"
@@ -336,7 +339,7 @@ export function FlowMap({ children, waveTrigger = 0, scrollContainerRef }: { chi
                 <motion.div
                     ref={hqRef}
                     className="absolute flex flex-col items-center justify-center pointer-events-auto cursor-pointer"
-                    style={{ left: HQ_X, top: HQ_Y, translateX: "90%", translateY: "-80%" }}
+                    style={{ left: HQ_X, top: HQ_Y, x: "-50%", y: "-50%" }}
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{
                         opacity: 1,
@@ -345,11 +348,15 @@ export function FlowMap({ children, waveTrigger = 0, scrollContainerRef }: { chi
                     transition={{ duration: 1.2, delay: 2.5 }}
                 >
                     <div className="relative z-10 flex flex-col items-center group">
-                        <Building2
-                            className="w-32 h-32 text-primary mb-6 drop-shadow-[0_0_20px_rgba(var(--primary),0.7)] transition-transform group-hover:scale-110 duration-500"
-                            style={{ color: waveTrigger > 0 ? waveColor : undefined }}
-                        />
-                        <div className="text-4xl font-bold text-white tracking-[0.4em] mb-2">PROZ HQ</div>
+                        <div className="relative w-[600px] h-[600px] transition-transform group-hover:scale-110 duration-500" style={{ marginBottom: HQ_TEXT_TOP_MARGIN }}>
+                            <Image
+                                src="/images/hq-logo.png"
+                                alt="ProZ HQ"
+                                fill
+                                className="object-contain drop-shadow-[0_0_20px_rgba(var(--primary),0.7)]"
+                            />
+                        </div>
+                        <div className="text-4xl font-bold text-white tracking-[0.4em]" style={{ marginBottom: HQ_SUBTEXT_TOP_MARGIN }}>PROZ HQ</div>
                         <div className="text-xs text-primary/60 uppercase tracking-[0.3em]">Production Ready</div>
                     </div>
                 </motion.div>

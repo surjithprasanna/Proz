@@ -111,7 +111,7 @@ export default function Home() {
 
 
             {/* CTA Section */}
-            <section id="ready-to-start" className="py-20">
+            <section id="ready-to-start" className="py-12">
                 <div className="container mx-auto px-4 text-center">
                     <div className="bg-primary/5 border border-primary/10 rounded-3xl p-12 md:p-20 relative overflow-hidden">
                         <div className="relative z-10">

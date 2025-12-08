@@ -54,7 +54,7 @@ export function TrustEngine() {
     }, [])
 
     return (
-        <section className="py-24 relative overflow-hidden">
+        <section className="py-16 relative overflow-hidden">
             {/* Dynamic Background Gradient */}
             <motion.div
                 animate={{
