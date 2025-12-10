@@ -120,10 +120,7 @@ export default function DashboardPage() {
                                         <div className="text-sm text-muted-foreground mb-1">Proposed Price</div>
                                         <div className="text-2xl font-bold text-yellow-400">{proposal.proposal_price}</div>
                                     </div>
-                                    <div className="p-4 bg-black/40 rounded border border-yellow-500/20">
-                                        <div className="text-sm text-muted-foreground mb-1">Project Goal</div>
-                                        <div className="text-sm">{proposal.project_goal}</div>
-                                    </div>
+
                                 </div>
 
                                 {/* Attached Documents */}

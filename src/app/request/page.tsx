@@ -28,8 +28,6 @@ export default function RequestPage() {
         degree: "",
         projectType: "",
         projectName: "",
-        projectGoal: "",
-        description: "",
         budgetRange: "",
         deadline: "",
         fileLinks: "",
@@ -55,7 +53,6 @@ export default function RequestPage() {
             const { data: { publicUrl } } = supabase.storage
                 .from('project-assets')
                 .getPublicUrl(filePath)
-
             setFormData(prev => ({
                 ...prev,
                 uploadedFiles: [...prev.uploadedFiles, publicUrl]
@@ -85,22 +82,31 @@ export default function RequestPage() {
             // Helper to convert empty strings to null (prevents type errors in DB)
             const sanitize = (val: string) => val.trim() === "" ? null : val.trim()
 
+            // Map profession to valid organization_type (must be lowercase: student, startup, business, enterprise)
+            const getOrgType = (prof: string) => {
+                const p = prof || ""
+                if (p === 'Student') return 'student'
+                if (p === 'Founder') return 'startup'
+                if (p === 'Business Owner') return 'business'
+                if (p === 'Professional') return 'business' // Map to business
+                return 'startup' // Default fallback
+            }
+
             const payload = {
                 full_name: sanitize(formData.fullName),
                 email: sanitize(formData.email),
                 phone: sanitize(formData.phone),
                 profession: sanitize(formData.profession),
-                organization_type: sanitize(formData.profession) || "Individual", // Fix for legacy constraint
+                organization_type: getOrgType(formData.profession), // Fix for check constraint
                 college: formData.profession === 'Student' ? sanitize(formData.college) : null,
                 degree: formData.profession === 'Student' ? sanitize(formData.degree) : null,
                 project_field: sanitize(formData.projectName) || "Untitled Project",
                 name: sanitize(formData.projectName) || "Untitled Project", // Fix for legacy 'name' column constraint
-                project_goal: sanitize(formData.projectGoal),
-                description: sanitize(formData.description),
                 budget_range: sanitize(formData.budgetRange),
                 deadline: sanitize(formData.deadline),
                 files: allFiles.length > 0 ? allFiles : null, // Send null if empty array
-                status: 'pending'
+                status: 'pending',
+                expected_features: [] // Fix for legacy constraint: column exists in DB and is NOT NULL
             }
 
             const { error } = await supabase
@@ -293,105 +299,58 @@ export default function RequestPage() {
                                         </Select>
                                     </div>
 
-                                    {formData.projectType !== 'No Idea' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">
-                                            <Label className="text-zinc-300">Project Name / Title *</Label>
+                                            <Label className="text-zinc-300">Estimated Budget</Label>
                                             <Input
-                                                required
                                                 className="bg-black border-zinc-800 text-white"
-                                                value={formData.projectName}
-                                                onChange={e => setFormData({ ...formData, projectName: e.target.value })}
-                                                placeholder="e.g. AI SaaS Platform"
+                                                value={formData.budgetRange}
+                                                onChange={e => setFormData({ ...formData, budgetRange: e.target.value })}
+                                                placeholder="e.g. $5k - $10k"
                                             />
                                         </div>
-                                    )}
+                                        <div className="space-y-2">
+                                            <Label className="text-zinc-300">Deadline</Label>
+                                            <Input
+                                                className="bg-black border-zinc-800 text-white"
+                                                value={formData.deadline}
+                                                onChange={e => setFormData({ ...formData, deadline: e.target.value })}
+                                                placeholder="e.g. 2 months"
+                                            />
+                                        </div>
+                                    </div>
 
                                     <div className="space-y-2">
-                                        <Label className="text-zinc-300">
-                                            {formData.projectType === 'No Idea' ? "What problem are you facing?" : "What is the main goal?"} *
+                                        <Label className="text-zinc-300 flex items-center gap-2">
+                                            <LinkIcon className="w-4 h-4" /> Project Assets (Docs, Images, Drive Links)
                                         </Label>
-                                        <Textarea
-                                            required
-                                            className="bg-black border-zinc-800 text-white min-h-[100px]"
-                                            value={formData.projectGoal}
-                                            onChange={e => setFormData({ ...formData, projectGoal: e.target.value })}
-                                            placeholder={formData.projectType === 'No Idea' ? "Describe the issue you want to solve..." : "Describe what you want to achieve..."}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label className="text-zinc-300">
-                                            {formData.projectType === 'No Idea' ? "Who is this for? (Target Audience)" : "Detailed Features & Requirements"} *
-                                        </Label>
-                                        <Textarea
-                                            required
-                                            className="bg-black border-zinc-800 text-white min-h-[150px]"
-                                            value={formData.description}
-                                            onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                            placeholder="Be as specific as possible..."
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Section 3: Assets & Logistics */}
-                            <div className="space-y-6">
-                                <h3 className="text-lg font-semibold text-green-400 flex items-center gap-2">
-                                    <span className="w-6 h-6 rounded-full bg-green-500/10 flex items-center justify-center text-xs">3</span>
-                                    Assets & Logistics
-                                </h3>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <Label className="text-zinc-300">Estimated Budget</Label>
-                                        <Input
-                                            className="bg-black border-zinc-800 text-white"
-                                            value={formData.budgetRange}
-                                            onChange={e => setFormData({ ...formData, budgetRange: e.target.value })}
-                                            placeholder="e.g. $5k - $10k"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-zinc-300">Deadline</Label>
-                                        <Input
-                                            className="bg-black border-zinc-800 text-white"
-                                            value={formData.deadline}
-                                            onChange={e => setFormData({ ...formData, deadline: e.target.value })}
-                                            placeholder="e.g. 2 months"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label className="text-zinc-300 flex items-center gap-2">
-                                        <LinkIcon className="w-4 h-4" /> Project Assets (Docs, Images, Drive Links)
-                                    </Label>
-                                    <div className="p-4 border border-dashed border-zinc-700 rounded-lg bg-black/50">
-                                        <Textarea
-                                            className="bg-transparent border-none text-white focus-visible:ring-0 p-0 min-h-[80px]"
-                                            value={formData.fileLinks}
-                                            onChange={e => setFormData({ ...formData, fileLinks: e.target.value })}
-                                            placeholder="Paste links to your Google Drive, Figma, or Dropbox here..."
-                                        />
-                                        <div className="flex items-center justify-between mt-2 pt-2 border-t border-zinc-800 text-xs text-zinc-500">
-                                            <div className="flex flex-wrap gap-2">
-                                                {formData.uploadedFiles.map((url, i) => (
-                                                    <span key={i} className="text-green-500 flex items-center gap-1">
-                                                        <CheckCircle2 className="w-3 h-3" /> Uploaded {i + 1}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                            <div className="relative">
-                                                <input
-                                                    type="file"
-                                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                                    onChange={handleFileUpload}
-                                                    disabled={uploading}
-                                                />
-                                                <Button type="button" variant="ghost" size="sm" className="h-6 text-xs hover:text-white" disabled={uploading}>
-                                                    <Upload className="w-3 h-3 mr-1" />
-                                                    {uploading ? "Uploading..." : "Upload File"}
-                                                </Button>
+                                        <div className="p-4 border border-dashed border-zinc-700 rounded-lg bg-black/50">
+                                            <Textarea
+                                                className="bg-transparent border-none text-white focus-visible:ring-0 p-0 min-h-[80px]"
+                                                value={formData.fileLinks}
+                                                onChange={e => setFormData({ ...formData, fileLinks: e.target.value })}
+                                                placeholder="Paste links to your Google Drive, Figma, or Dropbox here..."
+                                            />
+                                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-zinc-800 text-xs text-zinc-500">
+                                                <div className="flex flex-wrap gap-2">
+                                                    {formData.uploadedFiles.map((url, i) => (
+                                                        <span key={i} className="text-green-500 flex items-center gap-1">
+                                                            <CheckCircle2 className="w-3 h-3" /> Uploaded {i + 1}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                                <div className="relative">
+                                                    <input
+                                                        type="file"
+                                                        className="absolute inset-0 opacity-0 cursor-pointer"
+                                                        onChange={handleFileUpload}
+                                                        disabled={uploading}
+                                                    />
+                                                    <Button type="button" variant="ghost" size="sm" className="h-6 text-xs hover:text-white" disabled={uploading}>
+                                                        <Upload className="w-3 h-3 mr-1" />
+                                                        {uploading ? "Uploading..." : "Upload File"}
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -406,6 +365,6 @@ export default function RequestPage() {
                     </CardContent>
                 </Card>
             </div>
-        </PageWrapper>
+        </PageWrapper >
     )
 }

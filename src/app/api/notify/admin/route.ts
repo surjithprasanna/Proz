@@ -5,26 +5,37 @@ export async function POST(request: Request) {
         const body = await request.json()
         const { type, data } = body
 
-        // Admin Contact Details
-        const ADMIN_EMAIL = "kannansin784yg0@gmail.com"
-        const ADMIN_PHONE = "9361490331"
+        console.log(`[NOTIFICATION] Sending to Formspree for ${type}`)
 
-        console.log("----------------------------------------")
-        console.log(`[NOTIFICATION TRIGGERED] Type: ${type}`)
-        console.log(`To Admin Email: ${ADMIN_EMAIL}`)
-        console.log(`To Admin WhatsApp: ${ADMIN_PHONE}`)
-        console.log("Payload:", JSON.stringify(data, null, 2))
-        console.log("----------------------------------------")
+        const FORMSPREE_ID = process.env.NEXT_PUBLIC_FORMSPREE_ID || process.env.FORMSPREE_ID
 
-        // In a real production app, you would use:
-        // 1. Resend/SendGrid for Email
-        // 2. Twilio/Meta API for WhatsApp
+        if (!FORMSPREE_ID) {
+            console.warn("FORMSPREE_ID is missing. Email will not be sent.")
+            return NextResponse.json({ success: false, error: "Missing Formspree ID" })
+        }
 
-        // For now, we log success to simulate the trigger
-        return NextResponse.json({ success: true, message: "Admin notified" })
+        // Send to Formspree
+        const response = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                subject: `New Project Request: ${data.projectName || 'Untitled'}`,
+                ...data // Send all form data
+            })
+        })
 
-    } catch (error) {
+        if (!response.ok) {
+            const errorText = await response.text()
+            console.error("Formspree Error:", errorText)
+            throw new Error(`Formspree failed: ${response.statusText}`)
+        }
+
+        return NextResponse.json({ success: true, message: "Formspree notified" })
+
+    } catch (error: any) {
         console.error("Notification Error:", error)
-        return NextResponse.json({ error: "Failed to notify" }, { status: 500 })
+        return NextResponse.json({ error: error.message || "Failed to notify" }, { status: 500 })
     }
 }

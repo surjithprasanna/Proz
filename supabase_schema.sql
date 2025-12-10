@@ -23,9 +23,8 @@ create table if not exists project_requests (
   profession text, -- New
   college text, -- New (for Students)
   degree text, -- New (for Students)
-  project_goal text, -- New
+
   features text[],
-  description text,
   platform text,
   budget_range text,
   deadline text,
@@ -37,6 +36,8 @@ create table if not exists project_requests (
   -- Proposal Fields
   proposal_status text default 'none', -- none, quoted, accepted, modification_requested, rejected
   proposal_price text,
+  proposal_plan text, -- New: 'Starter', 'Professional', 'Enterprise'
+  access_code text, -- New: Generated access code for the user
   proposal_docs jsonb, -- Array of { name, url, type }
   client_id uuid references profiles(id) -- Linked user account if created
 );

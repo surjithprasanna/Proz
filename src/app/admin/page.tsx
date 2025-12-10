@@ -246,7 +246,7 @@ function RequestList() {
                                 req.proposal_status === 'modification_requested' ? 'MODIFICATION_REQ' : 'PENDING'}
                         </div>
                     </div>
-                    <p className="text-xs text-green-500/80 mb-4 line-clamp-2">{req.project_goal}</p>
+
 
                     <Button
                         size="sm"
