@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { ArrowUpRight, Code2, Database, Globe, Layers, Layout, LineChart, Lock, Smartphone, Terminal, Zap, Shield, Cpu, BarChart3, TestTube2, Workflow, Server } from "lucide-react"
+import { ArrowUpRight, Code2, Database, Globe, Layers, Layout, LineChart, Lock, Smartphone, Terminal, Zap, Shield, Cpu, BarChart3, TestTube2, Workflow, Server, MessageSquare, LifeBuoy, Settings, Users } from "lucide-react"
 import { PageWrapper } from "@/components/layout/PageWrapper"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -105,7 +105,8 @@ const serviceGroups = [
             { title: "Monitoring", desc: "Real-time system health and performance tracking.", icon: BarChart3 },
             { title: "Logging Systems", desc: "Centralized logs for debugging and audit.", icon: Terminal },
         ]
-    }
+    },
+
 ]
 
 import { FileText } from "lucide-react"
@@ -190,6 +191,62 @@ export default function ServicesPage() {
                                 </div>
                             </motion.div>
                         ))}
+                    </div>
+                </section>
+
+                {/* Project Consulting & Support (Custom Design) */}
+                <section className="container mx-auto px-6 py-20 border-t border-zinc-900">
+                    <div className="text-center mb-16">
+                        <h2 className="text-3xl md:text-5xl font-bold mb-4">Project Consulting & Support</h2>
+                        <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
+                            Comprehensive services to ensure your project's long-term success.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+                        {/* 1. Technical Strategy */}
+                        <div className="flex flex-col items-center text-center group">
+                            <div className="mb-6 transform group-hover:scale-110 transition-transform duration-300">
+                                <MessageSquare className="w-16 h-16 text-white stroke-[1.5]" />
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-4">Technical Strategy</h3>
+                            <p className="text-sm text-zinc-400 leading-relaxed">
+                                Clear, expert guidance on system architecture, technology stack selection, and scalability planning to set your project up for success from day one.
+                            </p>
+                        </div>
+
+                        {/* 2. Maintenance & Support */}
+                        <div className="flex flex-col items-center text-center group">
+                            <div className="mb-6 transform group-hover:scale-110 transition-transform duration-300">
+                                <LifeBuoy className="w-16 h-16 text-white stroke-[1.5]" />
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-4">Maintenance & <br />Ongoing Support</h3>
+                            <p className="text-sm text-zinc-400 leading-relaxed">
+                                Post-launch care with regular updates, bug fixes, performance optimization, and proactive monitoring to keep your product running smoothly.
+                            </p>
+                        </div>
+
+                        {/* 3. Code Audits */}
+                        <div className="flex flex-col items-center text-center group">
+                            <div className="mb-6 transform group-hover:scale-110 transition-transform duration-300">
+                                <Settings className="w-16 h-16 text-white stroke-[1.5]" />
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-4">Code Audits & <br />Quality Review</h3>
+                            <p className="text-sm text-zinc-400 leading-relaxed">
+                                In-depth evaluation of code quality, security, and performance, aligned with industry best practices and compliance standards.
+                            </p>
+                        </div>
+
+                        {/* 4. Team Augmentation */}
+                        <div className="flex flex-col items-center text-center group">
+                            <div className="mb-6 transform group-hover:scale-110 transition-transform duration-300">
+                                <Users className="w-16 h-16 text-white stroke-[1.5]" />
+                            </div>
+                            <h3 className="text-xl font-bold text-white mb-4">Team Augmentation</h3>
+                            <p className="text-sm text-zinc-400 leading-relaxed">
+                                Quickly scale your development capacity with experienced engineers who integrate seamlessly with your existing team.
+                            </p>
+                        </div>
                     </div>
                 </section>
 

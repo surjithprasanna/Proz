@@ -32,7 +32,9 @@ export function ClientPortalShowcase() {
             else if (phase === 'chip_entry') setPhase('chip_snap')
             else if (phase === 'chip_snap') setPhase('expand')
             else if (phase === 'expand') setPhase('dashboard')
-            else if (phase === 'dashboard') setPhase('idle')
+            else if (phase === 'dashboard') {
+                // Stop the loop, stay on dashboard
+            }
         }, timings[phase])
 
         return () => clearTimeout(timeout)
@@ -45,7 +47,7 @@ export function ClientPortalShowcase() {
                     Transparent <span className="text-primary">Progress</span>
                 </h2>
                 <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                    Watch your project evolve from ingestion to delivery.
+                    Each client receives secure dashboard access for transparent, real-time project tracking and ongoing updates from our developers.
                 </p>
             </div>
 

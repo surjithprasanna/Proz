@@ -11,9 +11,10 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 const navItems = [
   { name: "Services", href: "/services" },
   { name: "Projects", href: "/projects" },
-  { name: "Process", href: "/process" },
+
   { name: "Pricing", href: "/pricing" },
   { name: "About", href: "/about" },
+  { name: "Contact", href: "/contact" },
   { name: "Login", href: "/login" },
 ]
 
