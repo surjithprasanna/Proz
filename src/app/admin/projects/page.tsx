@@ -19,6 +19,10 @@ interface Project {
     status: string
     progress: number
     client_id: string
+    profiles?: {
+        full_name: string
+        contact_email: string
+    }
 }
 
 export default function AdminProjectsPage() {
@@ -50,6 +54,7 @@ export default function AdminProjectsPage() {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Name</TableHead>
+                            <TableHead>Client</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead>Progress</TableHead>
                             <TableHead>Actions</TableHead>
@@ -72,6 +77,12 @@ export default function AdminProjectsPage() {
                             projects.map((proj) => (
                                 <TableRow key={proj.id}>
                                     <TableCell>{proj.name}</TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col">
+                                            <span className="font-medium">{proj.profiles?.full_name || "Unassigned"}</span>
+                                            <span className="text-xs text-muted-foreground">{proj.profiles?.contact_email}</span>
+                                        </div>
+                                    </TableCell>
                                     <TableCell>
                                         <Badge variant="outline">{proj.status}</Badge>
                                     </TableCell>

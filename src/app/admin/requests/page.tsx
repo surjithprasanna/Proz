@@ -150,7 +150,8 @@ export default function AdminRequestsPage() {
                     docs: draft.files
                 })
             })
-            if (!res.ok) throw new Error("Failed to commit proposal")
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || "Failed to commit proposal")
 
             // Update local state
             setRequests(prev => prev.map(r => r.id === selectedRequest.id ? {
@@ -163,7 +164,7 @@ export default function AdminRequestsPage() {
                 proposal_docs: draft.files
             } : r))
 
-            setSelectedRequest(prev => ({ ...prev, status: 'contacted', proposal_status: 'proposal_ready' }))
+            setSelectedRequest((prev: any) => ({ ...prev, status: 'contacted', proposal_status: 'proposal_ready' }))
 
             alert("Proposal Committed! You can now convert this request.")
         } catch (error: any) {
@@ -190,7 +191,10 @@ export default function AdminRequestsPage() {
                     projectName: `${selectedRequest.project_field} Project`,
                     budget: draft.price,
                     deadline: selectedRequest.deadline,
-                    plan: draft.plan
+                    plan: draft.plan,
+                    full_name: selectedRequest.full_name,
+                    phone: selectedRequest.phone,
+                    profession: selectedRequest.profession
                 })
             })
 

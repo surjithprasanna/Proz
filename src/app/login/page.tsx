@@ -71,7 +71,7 @@ export default function LoginPage() {
                                         type="text"
                                         placeholder="PROZ-XXXX-YYYY"
                                         value={accessCode}
-                                        onChange={(e) => setAccessCode(e.target.value)}
+                                        onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
                                         className="pl-10 font-mono tracking-wider uppercase"
                                         required
                                     />

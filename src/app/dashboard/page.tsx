@@ -2,19 +2,19 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, ExternalLink, FileText, CheckCircle, XCircle, MessageSquare, Phone, Mail, Download } from "lucide-react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { AIProgressTracker } from "@/components/features/AIProgressTracker"
-import { motion, AnimatePresence } from "framer-motion"
+import { Loader2, FileText, Lock, User, Mail, Phone, Briefcase, DollarSign, Calendar } from "lucide-react"
+import { ProjectTimeline } from "@/components/dashboard/ProjectTimeline"
+import { motion } from "framer-motion"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 
 export default function DashboardPage() {
-    const [projects, setProjects] = useState<any[]>([])
-    const [proposals, setProposals] = useState<any[]>([])
+    const [project, setProject] = useState<any>(null)
+    const [clientProfile, setClientProfile] = useState<any>(null)
+    const [phases, setPhases] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
-    const [showContactOptions, setShowContactOptions] = useState<string | null>(null) // ID of proposal
     const supabase = createClient()
 
     useEffect(() => {
@@ -25,213 +25,160 @@ export default function DashboardPage() {
                 return
             }
 
-            // Fetch Active Projects
+            // 1. Fetch Client Profile
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single()
+            setClientProfile(profile)
+
+            // 2. Fetch Active Project
             const { data: projectData } = await supabase
                 .from('projects')
                 .select('*')
-                .eq('client_id', user.id)
+                .eq('user_id', user.id)
+                .single() // Assuming one active project for now
 
-            if (projectData) setProjects(projectData)
+            if (projectData) {
+                setProject(projectData)
 
-            // Fetch Pending Proposals
-            const { data: proposalData } = await supabase
-                .from('project_requests')
-                .select('*')
-                .eq('client_id', user.id)
-                .in('proposal_status', ['quoted', 'modification_requested']) // Fetch both statuses
+                // 3. Fetch Phases
+                const { data: phasesData } = await supabase
+                    .from('project_phases')
+                    .select('*')
+                    .eq('project_id', projectData.id)
+                    .order('order_index', { ascending: true })
 
-            if (proposalData) setProposals(proposalData)
-
+                if (phasesData) setPhases(phasesData)
+            }
             setLoading(false)
         }
 
         fetchData()
     }, [])
 
-    const handleAcceptProposal = async (proposalId: string) => {
-        alert("Proposal Accepted! Project initialization started.")
-    }
-
-    const handleRequestModification = async (proposalId: string) => {
-        // 1. Update status in DB
-        const { error } = await supabase
-            .from('project_requests')
-            .update({ proposal_status: 'modification_requested' })
-            .eq('id', proposalId)
-
-        if (!error) {
-            // 2. Update local state
-            setProposals(prev => prev.map(p =>
-                p.id === proposalId ? { ...p, proposal_status: 'modification_requested' } : p
-            ))
-            // 3. Show contact options
-            setShowContactOptions(proposalId)
-        }
-    }
-
-    const handleCancelProposal = async (proposalId: string) => {
-        if (confirm("Are you sure you want to decline this proposal?")) {
-            const { error } = await supabase
-                .from('project_requests')
-                .update({ proposal_status: 'rejected' })
-                .eq('id', proposalId)
-
-            if (!error) {
-                setProposals(prev => prev.filter(p => p.id !== proposalId))
-            }
-        }
-    }
-
     if (loading) {
-        return <div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div>
+        return <div className="flex justify-center items-center min-h-screen bg-black text-green-500"><Loader2 className="w-8 h-8 animate-spin" /></div>
+    }
+
+    if (!project) {
+        return (
+            <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-8 text-center">
+                <h1 className="text-2xl font-bold mb-4">No Active Project Found</h1>
+                <p className="text-muted-foreground">Please contact the administrator to initiate your project.</p>
+            </div>
+        )
     }
 
     return (
-        <div className="space-y-8 p-8 max-w-6xl mx-auto">
-            <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold tracking-tight">Client Dashboard</h1>
-                <Button asChild variant="outline">
-                    <Link href="/request">New Request</Link>
-                </Button>
+        <div className="min-h-screen bg-black text-white p-6 md:p-12 space-y-12 max-w-7xl mx-auto font-sans">
+
+            {/* Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/10 pb-6">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+                        Project Dashboard
+                    </h1>
+                    <p className="text-muted-foreground mt-1">Real-time overview of your development cycle.</p>
+                </div>
+                <Badge variant="outline" className={`px-4 py-1 text-sm ${project.status === 'Deployed' ? 'border-green-500 text-green-500 bg-green-500/10' :
+                    'border-blue-500 text-blue-500 bg-blue-500/10'
+                    }`}>
+                    {project.status || "Active"}
+                </Badge>
             </div>
 
-            {/* Pending Proposals Section */}
-            {proposals.length > 0 && (
+            {/* SECTION 1: Project Details (Admin Style - Read Only) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Client Details */}
                 <div className="space-y-4">
-                    <h2 className="text-xl font-semibold text-yellow-500 flex items-center gap-2">
-                        <FileText className="w-5 h-5" /> Pending Proposals
-                    </h2>
-                    {proposals.map(proposal => (
-                        <Card key={proposal.id} className={`border-yellow-500/30 bg-yellow-500/5 ${proposal.proposal_status === 'modification_requested' ? 'opacity-75' : ''}`}>
-                            <CardHeader>
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <CardTitle>{proposal.project_field}</CardTitle>
-                                        <CardDescription>Proposal for {proposal.full_name}</CardDescription>
-                                    </div>
-                                    <Badge variant="outline" className="border-yellow-500 text-yellow-500">
-                                        {proposal.proposal_status === 'modification_requested' ? 'Modification Requested' : 'Action Required'}
-                                    </Badge>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="p-4 bg-black/40 rounded border border-yellow-500/20">
-                                        <div className="text-sm text-muted-foreground mb-1">Proposed Price</div>
-                                        <div className="text-2xl font-bold text-yellow-400">{proposal.proposal_price}</div>
-                                    </div>
-
-                                </div>
-
-                                {/* Attached Documents */}
-                                {proposal.proposal_docs && proposal.proposal_docs.length > 0 && (
-                                    <div className="mt-4">
-                                        <h4 className="text-sm font-medium text-muted-foreground mb-2">Attached Documents</h4>
-                                        <div className="flex flex-wrap gap-2">
-                                            {proposal.proposal_docs.map((doc: any, idx: number) => (
-                                                <a
-                                                    key={idx}
-                                                    href={doc.url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex items-center gap-2 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 rounded text-sm text-blue-400 transition-colors"
-                                                >
-                                                    <FileText className="w-4 h-4" />
-                                                    {doc.name}
-                                                    <ExternalLink className="w-3 h-3 ml-1 opacity-50" />
-                                                </a>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </CardContent>
-                            <CardFooter className="flex flex-col sm:flex-row gap-3 justify-end border-t border-yellow-500/10 pt-6">
-                                <Button
-                                    variant="default"
-                                    className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
-                                    onClick={() => handleAcceptProposal(proposal.id)}
-                                >
-                                    <CheckCircle className="w-4 h-4 mr-2" />
-                                    Accept Quote
-                                </Button>
-
-                                <div className="relative w-full sm:w-auto">
-                                    <AnimatePresence>
-                                        {showContactOptions === proposal.id ? (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: 10 }}
-                                                className="absolute bottom-full mb-2 right-0 bg-zinc-900 border border-zinc-800 p-2 rounded shadow-xl flex flex-col gap-2 min-w-[200px] z-10"
-                                            >
-                                                <div className="text-xs text-muted-foreground p-1 text-center">Modification Requested. Contact Admin:</div>
-                                                <Button variant="ghost" className="justify-start" onClick={() => window.open('tel:+1234567890')}>
-                                                    <Phone className="w-4 h-4 mr-2" /> Call Admin
-                                                </Button>
-                                                <Button variant="ghost" className="justify-start" onClick={() => window.open('mailto:admin@proz.com')}>
-                                                    <Mail className="w-4 h-4 mr-2" /> Email Admin
-                                                </Button>
-                                            </motion.div>
-                                        ) : null}
-                                    </AnimatePresence>
-                                    <Button
-                                        variant="outline"
-                                        className="w-full sm:w-auto"
-                                        onClick={() => handleRequestModification(proposal.id)}
-                                    >
-                                        <MessageSquare className="w-4 h-4 mr-2" />
-                                        {proposal.proposal_status === 'modification_requested' ? 'Contact for Changes' : 'Request Modification'}
-                                    </Button>
-                                </div>
-
-                                <Button
-                                    variant="ghost"
-                                    className="text-red-400 hover:text-red-300 hover:bg-red-900/20 w-full sm:w-auto"
-                                    onClick={() => handleCancelProposal(proposal.id)}
-                                >
-                                    <XCircle className="w-4 h-4 mr-2" />
-                                    Decline
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    ))}
+                    <h3 className="text-green-500/80 font-bold border-b border-green-500/30 pb-2 flex items-center gap-2">
+                        <User className="w-4 h-4" /> CLIENT_DETAILS
+                    </h3>
+                    <div className="space-y-2">
+                        <Label className="text-xs text-green-500/60">FULL_NAME</Label>
+                        <div className="w-full bg-white/5 border border-white/10 rounded p-2 text-white/80 text-sm">
+                            {clientProfile?.full_name || "N/A"}
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-xs text-green-500/60">CONTACT_EMAIL</Label>
+                        <div className="w-full bg-white/5 border border-white/10 rounded p-2 text-white/80 text-sm flex items-center gap-2">
+                            <Mail className="w-3 h-3 opacity-50" /> {clientProfile?.email || "N/A"}
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-xs text-green-500/60">WHATSAPP_NUMBER</Label>
+                        <div className="w-full bg-white/5 border border-white/10 rounded p-2 text-white/80 text-sm flex items-center gap-2">
+                            <Phone className="w-3 h-3 opacity-50" /> {clientProfile?.phone || "N/A"}
+                        </div>
+                    </div>
                 </div>
-            )}
 
-            {projects.length === 0 && proposals.length === 0 ? (
-                <Card>
-                    <CardContent className="py-12 text-center">
-                        <p className="text-muted-foreground mb-4">You don&apos;t have any active projects or pending proposals.</p>
-                        <Button asChild>
-                            <Link href="/request">Start a Project</Link>
-                        </Button>
+                {/* Project Config */}
+                <div className="space-y-4">
+                    <h3 className="text-green-500/80 font-bold border-b border-green-500/30 pb-2 flex items-center gap-2">
+                        <Briefcase className="w-4 h-4" /> PROJECT_CONFIG
+                    </h3>
+                    <div className="space-y-2">
+                        <Label className="text-xs text-green-500/60">PROJECT_NAME</Label>
+                        <div className="w-full bg-white/5 border border-white/10 rounded p-2 text-white/80 text-sm font-medium">
+                            {project.name}
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-xs text-green-500/60">DESCRIPTION</Label>
+                        <div className="w-full bg-white/5 border border-white/10 rounded p-2 text-white/80 text-sm">
+                            {project.description || "No description available"}
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-xs text-green-500/60">PRICING_PLAN</Label>
+                        <div className="w-full bg-white/5 border border-white/10 rounded p-2 text-white/80 text-sm">
+                            {project.pricing_plan || "Custom"}
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label className="text-xs text-green-500/60">TOTAL_QUOTE</Label>
+                            <div className="w-full bg-white/5 border border-white/10 rounded p-2 text-green-400 text-sm font-bold flex items-center gap-1">
+                                <DollarSign className="w-3 h-3" /> {project.price}
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-xs text-green-500/60">ACCESS_CODE</Label>
+                            <div className="w-full bg-white/5 border border-white/10 rounded p-2 text-white/60 text-sm font-mono tracking-widest flex items-center gap-2">
+                                <Lock className="w-3 h-3" /> ••••••
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* SECTION 2: Project Evolution Timeline */}
+            <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-green-500/10 text-green-500">
+                        <Calendar className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-bold text-white">Project Evolution Map</h2>
+                        <p className="text-sm text-muted-foreground">Live tracking of development milestones and system integration.</p>
+                    </div>
+                </div>
+
+                <Card className="bg-black/40 border-green-500/20 backdrop-blur-xl overflow-hidden relative">
+                    {/* Background Grid/Effects */}
+                    <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10 pointer-events-none" />
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-green-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
+                    <CardContent className="p-0">
+                        <ProjectTimeline phases={phases} />
                     </CardContent>
                 </Card>
-            ) : (
-                <div className="space-y-12">
-                    {projects.map((project) => (
-                        <div key={project.id} className="space-y-6">
-                            {/* Project Header */}
-                            <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between bg-card p-6 rounded-lg border shadow-sm">
-                                <div>
-                                    <h2 className="text-2xl font-bold">{project.name}</h2>
-                                    <div className="flex gap-2 mt-2">
-                                        <Badge variant="secondary">{project.status}</Badge>
-                                        {project.pricing_plan && <Badge variant="outline">{project.pricing_plan}</Badge>}
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-sm text-muted-foreground">Total Quote</div>
-                                    <div className="text-2xl font-bold">{project.price || "TBD"}</div>
-                                </div>
-                            </div>
+            </div>
 
-                            {/* AI Progress Tracker */}
-                            <AIProgressTracker projectId={project.id} />
-                        </div>
-                    ))}
-                </div>
-            )}
         </div>
     )
 }

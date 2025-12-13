@@ -7,6 +7,7 @@ export async function GET() {
         const { data, error } = await supabase
             .from('project_requests')
             .select('*')
+            .neq('status', 'converted')
             .order('created_at', { ascending: false })
 
         if (error) throw error

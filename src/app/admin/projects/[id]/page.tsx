@@ -33,6 +33,8 @@ interface Phase {
     description: string | null
     status: string
     order_index: number
+    estimated_time?: string
+    start_date?: string
 }
 
 export default function AdminProjectDetailPage() {
@@ -45,6 +47,7 @@ export default function AdminProjectDetailPage() {
     const [project, setProject] = useState<Project | null>(null)
     const [clients, setClients] = useState<Client[]>([])
     const [phases, setPhases] = useState<Phase[]>([])
+    const [linkedRequest, setLinkedRequest] = useState<any>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
 
@@ -101,6 +104,20 @@ export default function AdminProjectDetailPage() {
             if (clientError) throw clientError
             setClients(clientData || [])
 
+            // Fetch Linked Request (if client assigned)
+            if (projData.client_id) {
+                const { data: reqData } = await supabase
+                    .from('project_requests')
+                    .select('*')
+                    .eq('client_id', projData.client_id)
+                    .eq('status', 'converted')
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .single()
+
+                if (reqData) setLinkedRequest(reqData)
+            }
+
         } catch (error) {
             const message = error instanceof Error ? error.message : "An unknown error occurred"
             toast({ title: "Error", description: message, variant: "destructive" })
@@ -129,6 +146,36 @@ export default function AdminProjectDetailPage() {
         } catch (error) {
             const message = error instanceof Error ? error.message : "An unknown error occurred"
             toast({ title: "Error", description: message, variant: "destructive" })
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
+    const handleEndProject = async () => {
+        if (!confirm("WARNING: This will mark the project and ALL phases as COMPLETED. Are you sure?")) return
+
+        setIsSaving(true)
+        try {
+            // 1. Update Project Status
+            const { error: projError } = await supabase
+                .from('projects')
+                .update({ status: 'Deployed', progress: 100 })
+                .eq('id', projectId)
+
+            if (projError) throw projError
+
+            // 2. Update All Phases
+            const { error: phaseError } = await supabase
+                .from('project_phases')
+                .update({ status: 'completed' })
+                .eq('project_id', projectId)
+
+            if (phaseError) throw phaseError
+
+            toast({ title: "Project Completed", description: "All systems marked as deployed." })
+            fetchData() // Refresh
+        } catch (error) {
+            toast({ title: "Error", description: "Failed to end project", variant: "destructive" })
         } finally {
             setIsSaving(false)
         }
@@ -194,11 +241,16 @@ export default function AdminProjectDetailPage() {
 
     return (
         <div className="container mx-auto py-10 space-y-8">
-            <div className="flex items-center gap-4">
-                <Button variant="ghost" onClick={() => router.back()}>
-                    <ArrowLeft className="w-4 h-4 mr-2" /> Back
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" onClick={() => router.back()}>
+                        <ArrowLeft className="w-4 h-4 mr-2" /> Back
+                    </Button>
+                    <h1 className="text-3xl font-bold">Manage Project: {project?.name}</h1>
+                </div>
+                <Button variant="destructive" onClick={handleEndProject} disabled={isSaving}>
+                    <CheckCircle2 className="w-4 h-4 mr-2" /> END PROJECT & DEPLOY
                 </Button>
-                <h1 className="text-3xl font-bold">Manage Project: {project?.name}</h1>
             </div>
 
             <div className="grid lg:grid-cols-3 gap-8">
@@ -287,6 +339,51 @@ export default function AdminProjectDetailPage() {
                     </CardContent>
                 </Card>
 
+                {/* Linked Request Details */}
+                {linkedRequest && (
+                    <Card className="lg:col-span-1 h-fit border-blue-500/20 bg-blue-500/5">
+                        <CardHeader>
+                            <CardTitle className="text-blue-500 text-lg">Original Request</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4 text-sm">
+                            <div>
+                                <Label className="text-xs text-muted-foreground">Requirements</Label>
+                                <div className="mt-1 p-2 bg-background/50 rounded border">
+                                    <p><strong>Field:</strong> {linkedRequest.project_field}</p>
+                                    <p><strong>Platform:</strong> {linkedRequest.platform}</p>
+                                    <p><strong>Features:</strong> {Array.isArray(linkedRequest.features) ? linkedRequest.features.join(", ") : linkedRequest.features}</p>
+                                </div>
+                            </div>
+
+                            {linkedRequest.files && (
+                                <div>
+                                    <Label className="text-xs text-muted-foreground">User Attachments</Label>
+                                    <div className="mt-1 space-y-1">
+                                        {Array.isArray(linkedRequest.files) ? linkedRequest.files.map((f: any, i: number) => (
+                                            <a key={i} href={f.url} target="_blank" className="block text-blue-500 hover:underline truncate">
+                                                📄 {f.name}
+                                            </a>
+                                        )) : <span className="text-muted-foreground">No files</span>}
+                                    </div>
+                                </div>
+                            )}
+
+                            {linkedRequest.proposal_docs && (
+                                <div>
+                                    <Label className="text-xs text-muted-foreground">Proposal Docs</Label>
+                                    <div className="mt-1 space-y-1">
+                                        {Array.isArray(linkedRequest.proposal_docs) ? linkedRequest.proposal_docs.map((f: any, i: number) => (
+                                            <a key={i} href={f.url} target="_blank" className="block text-green-500 hover:underline truncate">
+                                                📑 {f.name}
+                                            </a>
+                                        )) : <span className="text-muted-foreground">No docs</span>}
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
+
                 {/* Phase Management */}
                 <Card className="lg:col-span-2">
                     <CardHeader className="flex flex-row items-center justify-between">
@@ -303,52 +400,69 @@ export default function AdminProjectDetailPage() {
                         ) : (
                             <div className="space-y-4">
                                 {phases.map((phase, index) => (
-                                    <div key={phase.id} className="flex gap-4 items-start p-4 border rounded-lg bg-card/50 hover:bg-card transition-colors">
-                                        <div className="mt-2 text-muted-foreground">
-                                            <GripVertical className="w-5 h-5" />
-                                        </div>
-
-                                        <div className="flex-1 space-y-3">
-                                            <div className="flex gap-2">
-                                                <Input
-                                                    value={phase.name}
-                                                    onChange={e => handleUpdatePhase(phase.id, { name: e.target.value })}
-                                                    className="font-medium"
-                                                    placeholder="Phase Name"
-                                                />
-                                                <Select
-                                                    value={phase.status}
-                                                    onValueChange={val => handleUpdatePhase(phase.id, { status: val })}
-                                                >
-                                                    <SelectTrigger className={`w-[140px] ${phase.status === 'completed' ? 'text-green-500' :
-                                                        phase.status === 'processing' ? 'text-blue-500' : 'text-muted-foreground'
-                                                        }`}>
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="pending"><Clock className="w-4 h-4 inline mr-2" /> Pending</SelectItem>
-                                                        <SelectItem value="processing"><PlayCircle className="w-4 h-4 inline mr-2" /> Processing</SelectItem>
-                                                        <SelectItem value="completed"><CheckCircle2 className="w-4 h-4 inline mr-2" /> Completed</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
+                                    <div key={phase.id} className="flex flex-col gap-4 p-4 border rounded-lg bg-card/50 hover:bg-card transition-colors">
+                                        <div className="flex gap-4 items-start">
+                                            <div className="mt-2 text-muted-foreground">
+                                                <GripVertical className="w-5 h-5" />
                                             </div>
 
-                                            <Input
-                                                value={phase.description || ""}
-                                                onChange={e => handleUpdatePhase(phase.id, { description: e.target.value })}
-                                                className="text-sm text-muted-foreground"
-                                                placeholder="AI Description (e.g. 'Optimizing database schema...')"
-                                            />
-                                        </div>
+                                            <div className="flex-1 space-y-3">
+                                                <div className="flex gap-2">
+                                                    <Input
+                                                        value={phase.name}
+                                                        onChange={e => handleUpdatePhase(phase.id, { name: e.target.value })}
+                                                        className="font-medium"
+                                                        placeholder="Phase Name"
+                                                    />
+                                                    <Select
+                                                        value={phase.status}
+                                                        onValueChange={val => handleUpdatePhase(phase.id, { status: val })}
+                                                    >
+                                                        <SelectTrigger className={`w-[140px] ${phase.status === 'completed' ? 'text-green-500' :
+                                                            phase.status === 'processing' ? 'text-blue-500' : 'text-muted-foreground'
+                                                            }`}>
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="pending"><Clock className="w-4 h-4 inline mr-2" /> Pending</SelectItem>
+                                                            <SelectItem value="processing"><PlayCircle className="w-4 h-4 inline mr-2" /> Processing</SelectItem>
+                                                            <SelectItem value="completed"><CheckCircle2 className="w-4 h-4 inline mr-2" /> Completed</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
 
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="text-destructive hover:text-destructive/90"
-                                            onClick={() => handleDeletePhase(phase.id)}
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <Input
+                                                        value={phase.estimated_time || ""}
+                                                        onChange={e => handleUpdatePhase(phase.id, { estimated_time: e.target.value })}
+                                                        className="text-sm"
+                                                        placeholder="Est. Time (e.g. 2 weeks)"
+                                                    />
+                                                    <Input
+                                                        type="date"
+                                                        value={phase.start_date ? new Date(phase.start_date).toISOString().split('T')[0] : ""}
+                                                        onChange={e => handleUpdatePhase(phase.id, { start_date: e.target.value })}
+                                                        className="text-sm"
+                                                    />
+                                                </div>
+
+                                                <Input
+                                                    value={phase.description || ""}
+                                                    onChange={e => handleUpdatePhase(phase.id, { description: e.target.value })}
+                                                    className="text-sm text-muted-foreground"
+                                                    placeholder="AI Description (e.g. 'Optimizing database schema...')"
+                                                />
+                                            </div>
+
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="text-destructive hover:text-destructive/90"
+                                                onClick={() => handleDeletePhase(phase.id)}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>

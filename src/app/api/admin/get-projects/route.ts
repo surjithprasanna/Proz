@@ -6,7 +6,7 @@ export async function GET() {
         const supabase = createAdminClient()
         const { data, error } = await supabase
             .from('projects')
-            .select('*')
+            .select('*, profiles:client_id(full_name, contact_email)')
             .order('created_at', { ascending: false })
 
         if (error) throw error
