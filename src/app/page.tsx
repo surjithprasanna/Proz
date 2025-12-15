@@ -110,24 +110,7 @@ export default function Home() {
             <ProjectRequestCTA />
 
 
-            {/* CTA Section */}
-            <section id="ready-to-start" className="py-12">
-                <div className="container mx-auto px-4 text-center">
-                    <div className="bg-primary/5 border border-primary/10 rounded-3xl p-12 md:p-20 relative overflow-hidden">
-                        <div className="relative z-10">
-                            <h2 className="text-3xl md:text-5xl font-bold mb-6">Ready to Start?</h2>
-                            <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10">
-                                Whether you need a rapid prototype, a scalable product, or a complex enterprise system, we have the skills to deliver.
-                            </p>
-                            <Button asChild size="lg" className="text-lg px-8">
-                                <Link href="/request">Get a Quote</Link>
-                            </Button>
-                        </div>
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                        <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-                    </div>
-                </div>
-            </section>
+
         </PageWrapper>
     )
 }

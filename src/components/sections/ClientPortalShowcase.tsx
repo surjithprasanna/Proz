@@ -33,7 +33,7 @@ export function ClientPortalShowcase() {
             else if (phase === 'chip_snap') setPhase('expand')
             else if (phase === 'expand') setPhase('dashboard')
             else if (phase === 'dashboard') {
-                // Stop the loop, stay on dashboard
+                setPhase('idle')
             }
         }, timings[phase])
 
@@ -59,6 +59,37 @@ export function ClientPortalShowcase() {
                     {(phase === 'expand' || phase === 'dashboard') && (
                         <DashboardPhase key="dashboard" isExpanding={phase === 'expand'} />
                     )}
+                </AnimatePresence>
+
+                {/* Dynamic Explanatory Text */}
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={phase}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ duration: 0.5 }}
+                        className={cn(
+                            "absolute px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-md border pointer-events-none z-50 max-w-sm text-center transition-all duration-500",
+                            phase === 'idle' && "bottom-12 left-1/2 -translate-x-1/2 bg-zinc-900/80 border-zinc-700",
+                            phase === 'ingest' && "top-1/2 -translate-y-1/2 left-4 md:-left-12 bg-blue-950/90 border-blue-500/30 shadow-blue-900/20",
+                            (phase === 'chip_entry' || phase === 'chip_snap') && "top-1/2 -translate-y-1/2 right-4 md:-right-12 bg-yellow-950/90 border-yellow-500/30 shadow-yellow-900/20",
+                            phase === 'expand' && "top-8 left-1/2 -translate-x-1/2 bg-zinc-900/80 border-white/10",
+                            phase === 'dashboard' && "-top-24 left-1/2 -translate-x-1/2 bg-zinc-950/90 border-primary/20 shadow-primary/10 w-full max-w-lg"
+                        )}
+                    >
+                        <p className={cn(
+                            "text-sm font-medium",
+                            phase === 'ingest' ? "text-blue-100" :
+                                (phase === 'chip_entry' || phase === 'chip_snap') ? "text-yellow-100" :
+                                    "text-white"
+                        )}>
+                            {phase === 'idle' && "Initializing secure connection..."}
+                            {phase === 'ingest' && "We upload your project details, assets, and code updates constantly to a secure vault."}
+                            {(phase === 'chip_entry' || phase === 'chip_snap') && "You receive a unique security key to access your personalized dashboard."}
+                            {(phase === 'expand' || phase === 'dashboard') && "View real-time progress, deliverables, and invoices in your dedicated client portal."}
+                        </p>
+                    </motion.div>
                 </AnimatePresence>
             </div>
         </section>
@@ -219,14 +250,14 @@ function DashboardPhase({ isExpanding }: { isExpanding: boolean }) {
         <motion.div
             initial={isExpanding ? { width: "340px", height: "500px", borderRadius: "24px" } : { width: "100%", height: "100%" }}
             animate={{ width: "100%", height: "600px", borderRadius: "24px" }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
             className="bg-zinc-950 border border-white/10 overflow-hidden shadow-2xl flex flex-col relative max-w-5xl font-sans"
         >
             {/* Top Navigation Bar */}
             <motion.div
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.4 }}
+                transition={{ delay: 0.2 }}
                 className="h-16 border-b border-white/10 flex items-center px-6 justify-between bg-white/5"
             >
                 <div className="flex items-center gap-4">
@@ -257,7 +288,7 @@ function DashboardPhase({ isExpanding }: { isExpanding: boolean }) {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.5 }}
+                        transition={{ delay: 0.3 }}
                         className="max-w-4xl mx-auto space-y-8"
                     >
                         {/* Project Header Card */}
@@ -287,7 +318,7 @@ function DashboardPhase({ isExpanding }: { isExpanding: boolean }) {
                                     <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: "65%" }}
-                                        transition={{ duration: 1.5, delay: 0.8, ease: "easeOut" }}
+                                        transition={{ duration: 1.0, delay: 0.4, ease: "easeOut" }}
                                         className="h-full bg-primary rounded-full"
                                     />
                                 </div>
@@ -305,7 +336,7 @@ function DashboardPhase({ isExpanding }: { isExpanding: boolean }) {
                                     title="Wireframes Approved"
                                     time="2 hours ago"
                                     desc="Client signed off on the mobile checkout flows."
-                                    delay={0.9}
+                                    delay={0.5}
                                 />
                                 <ActivityItem
                                     icon={Code2}
@@ -313,7 +344,7 @@ function DashboardPhase({ isExpanding }: { isExpanding: boolean }) {
                                     title="Database Schema Finalized"
                                     time="Yesterday"
                                     desc="PostgreSQL migrations have been applied to staging."
-                                    delay={1.0}
+                                    delay={0.6}
                                 />
                                 <ActivityItem
                                     icon={Layout}
@@ -321,7 +352,7 @@ function DashboardPhase({ isExpanding }: { isExpanding: boolean }) {
                                     title="UI Components Updated"
                                     time="2 days ago"
                                     desc="Added new dark mode tokens to the design system."
-                                    delay={1.1}
+                                    delay={0.7}
                                 />
                             </div>
 
@@ -331,7 +362,7 @@ function DashboardPhase({ isExpanding }: { isExpanding: boolean }) {
                                 <motion.div
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ delay: 1.2 }}
+                                    transition={{ delay: 0.8 }}
                                     className="bg-zinc-900 border border-white/10 rounded-xl p-5 space-y-4"
                                 >
                                     <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
